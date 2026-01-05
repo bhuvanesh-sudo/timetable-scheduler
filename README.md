@@ -83,16 +83,5 @@ The platform **automatically proposes viable schedules**, detects conflicts, exp
 
 ---
 
-## 📄 Project Documentation
 
-Detailed epics, stories, and tasks are defined in the **Final Project Roadmap** :contentReference[oaicite:0]{index=0}.
-
----
-
-## 🚀 Status
-
-**Designed for Final-Year Capstone / Research-Grade Implementation**  
-Architecture-ready for AI optimization, constraint solvers, and scalable deployment.
-
----
 
