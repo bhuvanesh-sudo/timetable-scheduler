@@ -1,0 +1,45 @@
+services:
+  # 1. Database (PostgreSQL)
+  db:
+    image: postgres:15-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=scheduler_db
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=secretpassword
+    ports:
+      - "5432:5432"
+
+  # 2. Redis (Cache for Background Jobs)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  # 3. Backend (Python/Django)
+  backend:
+    build: ./backend
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+
+  # 4. Frontend (Your Existing React App)
+  frontend:
+    build: ./frontend/client  # Points to your existing folder
+    volumes:
+      - ./frontend/client:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      - CHOKIDAR_USEPOLLING=true # Required for hot-reloading on Linux
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
