@@ -1,0 +1,32 @@
+classroom_id,floor_no,room_capacity,room_type
+A102,Ground,60,Classroom
+A103,Ground,60,Classroom
+A104,Ground,60,Classroom
+C102,Ground,60,Classroom
+C103,Ground,60,Collaborative Lab
+C104,Ground,60,Classroom
+D103,Ground,60,Research Lab - AMUDA LAB
+A203,First,60,Classroom
+A204,First,60,Classroom
+A205,First,60,Classroom
+C203,First,60,Classroom
+C204,First,60,Classroom
+C205,First,60,Classroom
+D206,First,60,Classroom
+D201,First,6,Research Lab - CTS LAB
+A201,First,5,Research Lab - SIGMA LAB
+C201,First,7,Research Lab - CORE LAB
+D211,First,5,Research Lab - MAGIC LAB
+C302,Second,60,Classroom
+C303,Second,60,Student Lab - Computing System & Hardware
+C304,Second,60,Classroom
+D304,Second,60,Student Lab - Distributed System & IoT
+D305,Second,10,Wireless Lab / Staff Cabin - IIoT Testbed
+C402,Third,60,Classroom
+C403,Third,60,Classroom
+C404,Third,60,Classroom
+F401,Third,60,Classroom
+F403,Third,60,Classroom
+F405,Third,60,Classroom
+D405,Third,120,Active Learning Hall
+D407,Third,60,Classroom

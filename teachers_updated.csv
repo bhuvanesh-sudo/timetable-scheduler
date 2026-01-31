@@ -1,0 +1,87 @@
+teacher_id,teacher_name,email,department,max_hours_per_week
+T001,Aarthi R,aarthirt001@gmail.com,CSE,16
+T002,Abirami K,abiramikt002@gmail.com,CSE,16
+T003,Anantha Narayanan V,ananthanarayananvt003@gmail.com,CSE,16
+T004,Anbazhagan M,anbazhaganmt004@gmail.com,CSE,16
+T005,Anisha Radhakrishnan,anisharadhakrishnant005@gmail.com,CSE,16
+T006,Anupa Vijay,anupavijayt006@gmail.com,CSE,16
+T007,Archana Devi R,archanadevirt007@gmail.com,CSE,16
+T008,Archana R,archanart008@gmail.com,CSE,16
+T009,Arunkumar C,arunkumarct009@gmail.com,CSE,16
+T010,Aswathi T,aswathitt010@gmail.com,CSE,16
+T011,Bagavathi Sivakumar P,bagavathisivakumarpt011@gmail.com,CSE,16
+T012,Bagyammal T,bagyammaltt012@gmail.com,CSE,16
+T013,Baskar A,baskarat013@gmail.com,CSE,16
+T014,Bharathi D,bharathidt014@gmail.com,CSE,16
+T015,Bindu K R,bindukrt015@gmail.com,CSE,16
+T016,C.Shunmuga Velayutham,cshunmugavelayuthamt016@gmail.com,CSE,16
+T017,Dayanand V,dayanandvt017@gmail.com,CSE,16
+T018,Deepika T,deepikatt018@gmail.com,CSE,16
+T019,Dhanya M Dhanalakshmy,dhanyamdhanalakshmyt019@gmail.com,CSE,16
+T020,Dhanya N M,dhanyanmt020@gmail.com,CSE,16
+T021,Divya M,divyamt021@gmail.com,CSE,16
+T022,Dr.C.Bagavathi,drcbagavathit022@gmail.com,CSE,16
+T023,Dr.Ganesh Neelakanta Iyer,drganeshneelakantaiyert023@gmail.com,CSE,16
+T024,Dr.KARTHI R,drkarthirt024@gmail.com,CSE,16
+T025,Dr.Krishan Kumar,drkrishankumart025@gmail.com,CSE,16
+T026,Dr.PRIYANKA KUMAR,drpriyankakumart026@gmail.com,CSE,16
+T027,Dr.SABARINATH SUBRAMANIAM,drsabarinathsubramaniamt027@gmail.com,CSE,16
+T028,Gangadharan K,gangadharankt028@gmail.com,CSE,16
+T029,Gayathri V,gayathrivt029@gmail.com,CSE,16
+T030,Geethu Mohan,geethumohant030@gmail.com,CSE,16
+T031,Govindarajan J,govindarajanjt031@gmail.com,CSE,16
+T032,Harini N,harinint032@gmail.com,CSE,16
+T033,Hema P Menon,hemapmenont033@gmail.com,CSE,16
+T034,Jevitha K P,jevithakpt034@gmail.com,CSE,16
+T035,Jeyakumar G,jeyakumargt035@gmail.com,CSE,16
+T036,Kamalaveni V,kamalavenivt036@gmail.com,CSE,16
+T037,Lalithamani N,lalithamanint037@gmail.com,CSE,16
+T038,Latha Parameswaran,lathaparameswarant038@gmail.com,CSE,16
+T039,Malathi P,malathipt039@gmail.com,CSE,16
+T040,Manjusha R,manjushart040@gmail.com,CSE,16
+T041,Manu Madhavan,manumadhavant041@gmail.com,CSE,16
+T042,Mr.Venkadeshan R,mrvenkadeshanrt042@gmail.com,CSE,16
+T043,Ms.Lavanya G,mslavanyagt043@gmail.com,CSE,16
+T044,Nalinadevi K,nalinadevikt044@gmail.com,CSE,16
+T045,Neethu MR,neethumrt045@gmail.com,CSE,16
+T046,Padmavathi S,padmavathist046@gmail.com,CSE,16
+T047,Parambalath Narendra Kumar,parambalathnarendrakumart047@gmail.com,CSE,16
+T048,Prakash P,prakashpt048@gmail.com,CSE,16
+T049,Prashant R Nair,prashantrnairt049@gmail.com,CSE,16
+T050,Prathilothamai M,prathilothamaimt050@gmail.com,CSE,16
+T051,Radhika G,radhikagt051@gmail.com,CSE,16
+T052,Radhika N,radhikant052@gmail.com,CSE,16
+T053,Raghesh Krishnan K,ragheshkrishnankt053@gmail.com,CSE,16
+T054,Rajathilagam B,rajathilagambt054@gmail.com,CSE,16
+T055,Ramya GR,ramyagrt055@gmail.com,CSE,16
+T056,Ramya U M,ramyaumt056@gmail.com,CSE,16
+T057,Rimjhim Padam Singh,rimjhimpadamsinght057@gmail.com,CSE,16
+T058,Ritwik M,ritwikmt058@gmail.com,CSE,16
+T059,Sabarish BA,sabarishbat059@gmail.com,CSE,16
+T060,Saravanan S,saravananst060@gmail.com,CSE,16
+T061,Sathiya R R,sathiyarrt061@gmail.com,CSE,16
+T062,Sathya S,sathyast062@gmail.com,CSE,16
+T063,Selvi C,selvict063@gmail.com,CSE,16
+T064,Senthil Kumar T,senthilkumartt064@gmail.com,CSE,16
+T065,Senthilkumar M,senthilkumarmt065@gmail.com,CSE,16
+T066,Shanmuga Priya S,shanmugapriyast066@gmail.com,CSE,16
+T067,Shivapratap Gopakumar,shivapratapgopakumart067@gmail.com,CSE,16
+T068,Shriram K V,shriramkvt068@gmail.com,CSE,16
+T069,Shyamala C K,shyamalackt069@gmail.com,CSE,16
+T070,Sikha O K,sikhaokt070@gmail.com,CSE,16
+T071,Sini Raj P,sinirajpt071@gmail.com,CSE,16
+T072,Siva Ratna Kumari Narisetti,sivaratnakumarinarisettit072@gmail.com,CSE,16
+T073,Souparnika Sreedhar,souparnikasreedhart073@gmail.com,CSE,16
+T074,Subathra P,subathrapt074@gmail.com,CSE,16
+T075,Suchithra M,suchithramt075@gmail.com,CSE,16
+T076,Suganya R,suganyart076@gmail.com,CSE,16
+T077,Sujee R,sujeert077@gmail.com,CSE,16
+T078,Sumesh A K,sumeshakt078@gmail.com,CSE,16
+T079,Swapna T R,swapnatrt079@gmail.com,CSE,16
+T080,Thangavelu S,thangavelust080@gmail.com,CSE,16
+T081,Uma J,umajt081@gmail.com,CSE,16
+T082,Vamsee Krishna Kiran M,vamseekrishnakiranmt082@gmail.com,CSE,16
+T083,Venkataraman D,venkataramandt083@gmail.com,CSE,16
+T084,Vidhya Balasubramaniam,vidhyabalasubramaniamt084@gmail.com,CSE,16
+T085,Vidhya S,vidhyast085@gmail.com,CSE,16
+T086,Vijaya Kumar Sundar,vijayakumarsundart086@gmail.com,CSE,16

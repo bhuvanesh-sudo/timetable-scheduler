@@ -1,0 +1,47 @@
+services:
+  # 1. Database
+  db:
+    image: postgres:15-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=scheduler_db
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=secretpassword
+    ports:
+      - "5432:5432"
+
+  # 2. Redis
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  # 3. Backend (The Fix is here)
+  backend:
+    build: ./backend
+    volumes:
+      - ./backend:/app
+    # This line tells Django to allow outside connections
+    command: python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+
+  # 4. Frontend
+  frontend:
+    build: ./frontend/client
+    volumes:
+      - ./frontend/client:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      - CHOKIDAR_USEPOLLING=true 
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
