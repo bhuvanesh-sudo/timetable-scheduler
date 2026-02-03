@@ -32,7 +32,7 @@ const Login = () => {
           {/* Logo / Brand */}
           <div className="flex items-center space-x-2 mb-10">
             <div className="w-8 h-8 bg-slate-900 rounded flex items-center justify-center text-white">
-              <Hexagon size={18} strokeWidth={3} />
+              <Hexagon size={20} strokeWidth={5} />
             </div>
             <span className="text-lg font-bold text-slate-900 tracking-tight">Timetable.AI</span>
           </div>
@@ -119,7 +119,7 @@ const Login = () => {
 
       {/* Right Column: Visual / Context */}
       <div className="hidden lg:flex w-1/2 bg-slate-50 relative overflow-hidden items-center justify-center border-l border-slate-200">
-        <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px] opacity-50"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [bg-size:16px_16px] opacity-50"></div>
         
         <div className="relative z-10 max-w-md text-center p-12">
            <div className="mb-8 flex justify-center">
