@@ -312,14 +312,8 @@ class TimetableScheduler:
     def _can_schedule_block(self, window, section, course, teacher):
         """Check if a block of slots is valid for teacher/section."""
         for ts in window:
-            # Check Section availability (validator check_time_conflicts)
-            # Check Teacher availability
-            # We can use validator.validate_all() but without room (or dummy room)
-            # Or manually check basic conflicts
-            
-            # Simple check using validator internal methods if possible, or validate_all
-            # Logic: Teacher free? Section free?
-            # We assume Room search comes later
+            # Check if Teacher and Section are free at this timeslot
+            # We allocate Room later, so we only check person availability here
             
             t_valid, _ = self.validator.validate_faculty_availability(teacher, ts)
             if not t_valid: return False

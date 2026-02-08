@@ -13,4 +13,5 @@ urlpatterns = [
     path('analytics/workload', views.get_workload_analytics, name='workload-analytics'),
     path('analytics/rooms', views.get_room_utilization, name='room-utilization'),
     path('timetable', views.get_timetable_view, name='timetable-view'),
+    path('my-schedule', views.get_my_schedule, name='my-schedule'),
 ]

@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import '../styles/Login.css'; // We'll create this simple CSS
+import '../styles/Login.css';
 
+/**
+ * Login Page
+ * 
+ * Handles user authentication and role-based redirection.
+ * Admin/HOD -> Dashboard, Faculty -> My Schedule.
+ */
 const Login = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -14,6 +20,7 @@ const Login = () => {
 
     const from = location.state?.from?.pathname || '/';
 
+    // Handle form submission and forced redirection for Faculty
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
@@ -22,7 +29,12 @@ const Login = () => {
         const result = await login(username, password);
 
         if (result.success) {
-            navigate(from, { replace: true });
+            // Force redirect for Faculty
+            if (result.user?.role === 'FACULTY') {
+                navigate('/my-schedule', { replace: true });
+            } else {
+                navigate(from, { replace: true });
+            }
         } else {
             setError(result.error);
         }

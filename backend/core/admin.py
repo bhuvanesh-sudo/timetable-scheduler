@@ -60,3 +60,19 @@ class ConflictLogAdmin(admin.ModelAdmin):
     search_fields = ['description']
     readonly_fields = ['detected_at']
 
+
+from django.contrib.auth.admin import UserAdmin
+from .models import User
+
+@admin.register(User)
+class CustomUserAdmin(UserAdmin):
+    list_display = ['username', 'email', 'role', 'teacher', 'is_staff']
+    list_filter = ['role', 'is_staff', 'is_superuser', 'is_active']
+    fieldsets = UserAdmin.fieldsets + (
+        ('Role & Linking', {'fields': ('role', 'teacher', 'department', 'phone', 'is_protected')}),
+    )
+    add_fieldsets = UserAdmin.add_fieldsets + (
+        ('Role & Linking', {'fields': ('role', 'teacher', 'department', 'phone', 'is_protected')}),
+    )
+    search_fields = ['username', 'email', 'teacher__teacher_name']
+

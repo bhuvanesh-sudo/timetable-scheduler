@@ -16,6 +16,7 @@ import AuditLogs from './pages/AuditLogs';
 import UserManagement from './pages/UserManagement';
 import ChangeRequests from './pages/ChangeRequests';
 import TeacherRequests from './pages/TeacherRequests';
+import FacultyDashboard from './pages/FacultyDashboard';
 import Login from './pages/Login';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -39,48 +40,50 @@ const MainLayout = ({ children }) => {
 
         <nav>
           <ul className="nav-menu">
-            <li className="nav-item">
-              <Link to="/dashboard" className="nav-link">
-                📊 Dashboard
-              </Link>
-            </li>
+            {user?.role !== 'FACULTY' && (
+              <li className="nav-item">
+                <Link to="/dashboard" className="nav-link">
+                  Dashboard
+                </Link>
+              </li>
+            )}
 
             {/* Admin: Full Access */}
             {user?.role === 'ADMIN' && (
               <>
                 <li className="nav-item">
                   <Link to="/data" className="nav-link">
-                    📁 Data Management
+                    Data Management
                   </Link>
                 </li>
                 <li className="nav-item">
                   <Link to="/generate" className="nav-link">
-                    ⚙️ Generate Schedule
+                    Generate Schedule
                   </Link>
                 </li>
                 <li className="nav-item">
                   <Link to="/timetable" className="nav-link">
-                    📅 View Timetable
+                    View Timetable
                   </Link>
                 </li>
                 <li className="nav-item">
                   <Link to="/analytics" className="nav-link">
-                    📈 Analytics
+                    Analytics
                   </Link>
                 </li>
                 <li className="nav-item">
                   <Link to="/users" className="nav-link">
-                    👥 Users
+                    Users
                   </Link>
                 </li>
                 <li className="nav-item">
                   <Link to="/change-requests" className="nav-link">
-                    📝 Change Requests
+                    Change Requests
                   </Link>
                 </li>
                 <li className="nav-item">
                   <Link to="/audit-logs" className="nav-link">
-                    📋 Audit Logs
+                    Audit Logs
                   </Link>
                 </li>
               </>
@@ -91,17 +94,17 @@ const MainLayout = ({ children }) => {
               <>
                 <li className="nav-item">
                   <Link to="/teacher-requests" className="nav-link">
-                    👨‍🏫 Teacher Requests
+                    Teacher Requests
                   </Link>
                 </li>
                 <li className="nav-item">
                   <Link to="/timetable" className="nav-link">
-                    📅 View Timetable
+                    View Timetable
                   </Link>
                 </li>
                 <li className="nav-item">
                   <Link to="/analytics" className="nav-link">
-                    📈 Analytics
+                    Analytics
                   </Link>
                 </li>
               </>
@@ -110,15 +113,15 @@ const MainLayout = ({ children }) => {
             {/* Faculty: View Only */}
             {user?.role === 'FACULTY' && (
               <li className="nav-item">
-                <Link to="/timetable" className="nav-link">
-                  📅 View Timetable
+                <Link to="/my-schedule" className="nav-link">
+                  My Schedule
                 </Link>
               </li>
             )}
 
             <li className="nav-item" style={{ marginTop: '2rem' }}>
               <button onClick={logout} className="nav-link" style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)' }}>
-                🚪 Logout
+                Logout
               </button>
             </li>
           </ul>
@@ -133,6 +136,15 @@ const MainLayout = ({ children }) => {
   );
 };
 
+// Helper for root redirect based on user role
+const HomeRedirect = () => {
+  const { user } = useAuth();
+  if (user?.role === 'FACULTY') {
+    return <Navigate to="/my-schedule" replace />;
+  }
+  return <Navigate to="/dashboard" replace />;
+};
+
 function App() {
   return (
     <Router>
@@ -143,12 +155,12 @@ function App() {
           {/* Protected Routes */}
           <Route path="/" element={
             <ProtectedRoute>
-              <Navigate to="/dashboard" replace />
+              <HomeRedirect />
             </ProtectedRoute>
           } />
 
           <Route path="/dashboard" element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={['ADMIN', 'HOD']}>
               <MainLayout><Dashboard /></MainLayout>
             </ProtectedRoute>
           } />
@@ -168,6 +180,12 @@ function App() {
           <Route path="/timetable" element={
             <ProtectedRoute>
               <MainLayout><ViewTimetable /></MainLayout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/my-schedule" element={
+            <ProtectedRoute roles={['FACULTY']}>
+              <MainLayout><FacultyDashboard /></MainLayout>
             </ProtectedRoute>
           } />
 
@@ -201,8 +219,8 @@ function App() {
             </ProtectedRoute>
           } />
 
-          {/* Catch all - redirect to dashboard if logged in, else login */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          {/* Catch all - redirect home which handles role based redirect */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
     </Router>

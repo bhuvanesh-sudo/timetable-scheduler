@@ -108,7 +108,7 @@ function UserManagement() {
                                         <td style={{ padding: '12px' }}>{user.department || '-'}</td>
                                         <td style={{ padding: '12px' }}>{user.email}</td>
                                         <td style={{ padding: '12px' }}>
-                                            {user.is_protected && <span title="Protected Account">🛡️ Protected</span>}
+                                            {user.is_protected && <span title="Protected Account">Protected</span>}
                                         </td>
                                         <td style={{ padding: '12px' }}>
                                             {!user.is_protected && (

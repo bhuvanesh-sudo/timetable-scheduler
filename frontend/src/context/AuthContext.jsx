@@ -2,6 +2,12 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import schedulerAPI from '../services/api';
 
+/**
+ * AuthContext
+ * 
+ * Manages global authentication state, tokens, and user profile data.
+ * Provides login/logout methods and persists session via localStorage.
+ */
 const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
@@ -25,10 +31,12 @@ export const AuthProvider = ({ children }) => {
         }
     }, [accessToken]);
 
+    // Fetch authenticated user details
     const fetchUserProfile = async () => {
         try {
             const response = await schedulerAPI.get('/auth/me/');
             setUser(response.data);
+            return response.data;
         } catch (error) {
             console.error("Failed to fetch user profile", error);
             // If token invalid, try refresh or logout
@@ -38,6 +46,7 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // Authenticate user and retrieve tokens
     const login = async (username, password) => {
         try {
             const response = await schedulerAPI.post('/auth/token/', { username, password });
@@ -49,8 +58,8 @@ export const AuthProvider = ({ children }) => {
             localStorage.setItem('refresh_token', refresh);
 
             schedulerAPI.defaults.headers.common['Authorization'] = `Bearer ${access}`;
-            await fetchUserProfile();
-            return { success: true };
+            const userData = await fetchUserProfile();
+            return { success: true, user: userData };
         } catch (error) {
             console.error("Login failed", error);
             return {
