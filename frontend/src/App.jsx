@@ -12,6 +12,8 @@ import DataManagement from './pages/DataManagement';
 import GenerateSchedule from './pages/GenerateSchedule';
 import ViewTimetable from './pages/ViewTimetable';
 import Analytics from './pages/Analytics';
+import AuditLogs from './pages/AuditLogs';
+import UserManagement from './pages/UserManagement';
 import Login from './pages/Login';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -64,6 +66,20 @@ const MainLayout = ({ children }) => {
                 📈 Analytics
               </Link>
             </li>
+            {user?.role === 'ADMIN' && (
+              <li className="nav-item">
+                <Link to="/users" className="nav-link">
+                  👥 Users
+                </Link>
+              </li>
+            )}
+            {(user?.role === 'ADMIN' || user?.role === 'HOD') && (
+              <li className="nav-item">
+                <Link to="/audit-logs" className="nav-link">
+                  📋 Audit Logs
+                </Link>
+              </li>
+            )}
             <li className="nav-item" style={{ marginTop: '2rem' }}>
               <button onClick={logout} className="nav-link" style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)' }}>
                 🚪 Logout
@@ -122,6 +138,18 @@ function App() {
           <Route path="/analytics" element={
             <ProtectedRoute>
               <MainLayout><Analytics /></MainLayout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/users" element={
+            <ProtectedRoute roles={['ADMIN']}>
+              <MainLayout><UserManagement /></MainLayout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/audit-logs" element={
+            <ProtectedRoute roles={['ADMIN', 'HOD']}>
+              <MainLayout><AuditLogs /></MainLayout>
             </ProtectedRoute>
           } />
 

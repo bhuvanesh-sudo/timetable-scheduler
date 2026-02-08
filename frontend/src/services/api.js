@@ -33,6 +33,46 @@ api.interceptors.request.use(
   }
 );
 
+// Response interceptor for token refresh
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Prevent infinite loops
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        const refreshToken = localStorage.getItem('refresh_token');
+        if (refreshToken) {
+          const response = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
+            refresh: refreshToken
+          });
+
+          const newAccessToken = response.data.access;
+          localStorage.setItem('access_token', newAccessToken);
+
+          // Update header and retry
+          api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
+          originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
+
+          return api(originalRequest);
+        }
+      } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
+        // Clear tokens and redirect to login
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 // Core Data APIs
 export const teacherAPI = {
   getAll: () => api.get('/teachers/'),
@@ -97,6 +137,16 @@ export const schedulerAPI = {
     if (teacher) url += `&teacher=${teacher}`;
     return api.get(url);
   },
+};
+
+export const auditLogAPI = {
+  getAll: () => api.get('/audit-logs/'),
+  getById: (id) => api.get(`/audit-logs/${id}/`),
+};
+
+export const userAPI = {
+  getAll: () => api.get('/auth/users/'),
+  delete: (id) => api.delete(`/auth/users/${id}/`),
 };
 
 export default api;
