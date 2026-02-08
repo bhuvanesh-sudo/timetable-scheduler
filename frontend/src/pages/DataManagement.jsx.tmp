@@ -1,0 +1,140 @@
+
+// CSV Import functions
+const getExpectedSchema = () => {
+    switch (activeTab) {
+        case 'teachers':
+            return ['teacher_id', 'teacher_name', 'email', 'department', 'max_hours_per_week'];
+        case 'courses':
+            return ['course_id', 'course_name', 'year', 'semester', 'credits', 'weekly_slots', 'lectures', 'practicals', 'is_lab', 'is_elective'];
+        case 'rooms':
+            return ['room_id', 'block', 'floor', 'room_type'];
+        case 'sections':
+            return ['class_id', 'year', 'section', 'sem', 'department'];
+        default:
+            return [];
+    }
+};
+
+const parseCSV = (text) => {
+    const lines = text.split('\n').filter(line => line.trim());
+    if (lines.length === 0) return { headers: [], rows: [] };
+
+    const headers = lines[0].split(',').map(h => h.trim());
+    const rows = lines.slice(1).map(line => {
+        const values = line.split(',').map(v => v.trim());
+        const row = {};
+        headers.forEach((header, index) => {
+            row[header] = values[index];
+        });
+        return row;
+    });
+
+    return { headers, rows };
+};
+
+const validateSchema = (headers) => {
+    const expected = getExpectedSchema();
+    const missing = expected.filter(field => !headers.includes(field));
+    const extra = headers.filter(field => !expected.includes(field));
+
+    return {
+        valid: missing.length === 0,
+        missing,
+        extra
+    };
+};
+
+const handleFileSelect = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.csv')) {
+        alert('Please select a CSV file');
+        return;
+    }
+
+    setCsvFile(file);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const text = e.target.result;
+        const { headers, rows } = parseCSV(text);
+
+        const validation = validateSchema(headers);
+
+        if (!validation.valid) {
+            setImportErrors([
+                `Schema mismatch!`,
+                validation.missing.length > 0 ? `Missing columns: ${validation.missing.join(', ')}` : null,
+                validation.extra.length > 0 ? `Extra columns (will be ignored): ${validation.extra.join(', ')}` : null,
+            ].filter(Boolean));
+            setCsvData([]);
+        } else {
+            setImportErrors([]);
+            setCsvData(rows);
+        }
+    };
+
+    reader.readAsText(file);
+};
+
+const handleImportCSV = async () => {
+    if (csvData.length === 0) {
+        alert('No valid data to import');
+        return;
+    }
+
+    if (!window.confirm(`Import ${csvData.length} records from CSV?`)) {
+        return;
+    }
+
+    try {
+        const api = getActiveAPI();
+        let successCount = 0;
+        let errorCount = 0;
+        const errors = [];
+
+        for (const row of csvData) {
+            try {
+                // Convert string values to appropriate types
+                const processedRow = { ...row };
+
+                // Type conversions based on entity
+                if (activeTab === 'teachers') {
+                    processedRow.max_hours_per_week = parseInt(processedRow.max_hours_per_week);
+                } else if (activeTab === 'courses') {
+                    processedRow.year = parseInt(processedRow.year);
+                    processedRow.semester = parseInt(processedRow.semester);
+                    processedRow.credits = parseInt(processedRow.credits);
+                    processedRow.weekly_slots = parseInt(processedRow.weekly_slots);
+                    processedRow.lectures = parseInt(processedRow.lectures);
+                    processedRow.practicals = parseInt(processedRow.practicals);
+                    processedRow.is_lab = processedRow.is_lab === 'true' || processedRow.is_lab === '1';
+                    processedRow.is_elective = processedRow.is_elective === 'true' || processedRow.is_elective === '1';
+                } else if (activeTab === 'rooms') {
+                    processedRow.floor = parseInt(processedRow.floor);
+                } else if (activeTab === 'sections') {
+                    processedRow.year = parseInt(processedRow.year);
+                    processedRow.sem = parseInt(processedRow.sem);
+                }
+
+                await api.create(processedRow);
+                successCount++;
+            } catch (error) {
+                errorCount++;
+                errors.push(`Row ${successCount + errorCount}: ${error.response?.data?.error || error.message}`);
+            }
+        }
+
+        setShowImportModal(false);
+        setCsvFile(null);
+        setCsvData([]);
+        setImportErrors([]);
+        await loadData();
+
+        alert(`Import complete!\nSuccess: ${successCount}\nFailed: ${errorCount}${errors.length > 0 ? '\n\nErrors:\n' + errors.slice(0, 5).join('\n') : ''}`);
+    } catch (error) {
+        console.error('Error importing CSV:', error);
+        alert('Failed to import CSV');
+    }
+};

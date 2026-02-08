@@ -111,9 +111,20 @@ export const sectionAPI = {
   byYear: (year) => api.get(`/sections/by_year/?year=${year}`),
 };
 
+export const teacherCourseMappingAPI = {
+  getAll: () => api.get('/teacher-course-mappings/'),
+  getById: (id) => api.get(`/teacher-course-mappings/${id}/`),
+  create: (data) => api.post('/teacher-course-mappings/', data),
+  update: (id, data) => api.put(`/teacher-course-mappings/${id}/`, data),
+  delete: (id) => api.delete(`/teacher-course-mappings/${id}/`),
+};
+
 export const timeslotAPI = {
   getAll: () => api.get('/timeslots/'),
   getById: (id) => api.get(`/timeslots/${id}/`),
+  create: (data) => api.post('/timeslots/', data),
+  update: (id, data) => api.put(`/timeslots/${id}/`, data),
+  delete: (id) => api.delete(`/timeslots/${id}/`),
   byDay: (day) => api.get(`/timeslots/by_day/?day=${day}`),
 };
 
@@ -147,6 +158,14 @@ export const auditLogAPI = {
 export const userAPI = {
   getAll: () => api.get('/auth/users/'),
   delete: (id) => api.delete(`/auth/users/${id}/`),
+};
+
+export const changeRequestAPI = {
+  getAll: () => api.get('/change-requests/'),
+  getById: (id) => api.get(`/change-requests/${id}/`),
+  create: (data) => api.post('/change-requests/', data),
+  approve: (id, admin_notes = '') => api.post(`/change-requests/${id}/approve/`, { admin_notes }),
+  reject: (id, admin_notes = '') => api.post(`/change-requests/${id}/reject/`, { admin_notes }),
 };
 
 export default api;

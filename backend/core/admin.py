@@ -24,8 +24,8 @@ class RoomAdmin(admin.ModelAdmin):
 
 @admin.register(Section)
 class SectionAdmin(admin.ModelAdmin):
-    list_display = ['class_id', 'year', 'section', 'sem', 'department']
-    list_filter = ['year', 'sem', 'department']
+    list_display = ['class_id', 'year', 'section', 'department']
+    list_filter = ['year', 'department']
     search_fields = ['class_id']
 
 @admin.register(TimeSlot)
