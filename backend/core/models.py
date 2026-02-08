@@ -121,6 +121,7 @@ class Course(models.Model):
     credits = models.IntegerField(validators=[MinValueValidator(0)])
     is_lab = models.BooleanField(default=False)
     is_elective = models.BooleanField(default=False)
+    department = models.CharField(max_length=50, blank=True)  # Added for HOD filtering
     weekly_slots = models.IntegerField(validators=[MinValueValidator(0)])
     
     class Meta:
@@ -383,3 +384,42 @@ class ConflictLog(models.Model):
     
     def __str__(self):
         return f"{self.conflict_type} - {self.severity} ({self.schedule.schedule_id})"
+
+
+class FacultyAvailability(models.Model):
+    """
+    Availability constraints submitted by faculty.
+    """
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('APPROVED', 'Approved'),
+        ('REJECTED', 'Rejected'),
+    ]
+    
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name='availabilities')
+    timeslot = models.ForeignKey(TimeSlot, on_delete=models.CASCADE)
+    is_available = models.BooleanField(default=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        db_table = 'faculty_availabilities'
+        unique_together = ['teacher', 'timeslot']
+
+    def __str__(self):
+        return f"{self.teacher.teacher_id} - {self.timeslot.slot_id} ({self.status})"
+
+
+class ElectiveBucket(models.Model):
+    """
+    Groups elective courses that must be scheduled simultaneously.
+    """
+    name = models.CharField(max_length=100)
+    department = models.CharField(max_length=50)
+    courses = models.ManyToManyField(Course, related_name='elective_buckets')
+
+    class Meta:
+        db_table = 'elective_buckets'
+
+    def __str__(self):
+        return f"{self.name} ({self.department})"

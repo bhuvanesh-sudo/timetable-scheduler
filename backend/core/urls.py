@@ -14,7 +14,8 @@ from .views import (
     TeacherViewSet, CourseViewSet, RoomViewSet,
     TimeSlotViewSet, SectionViewSet, TeacherCourseMappingViewSet,
     ScheduleViewSet, ScheduleEntryViewSet, ConstraintViewSet,
-    ConflictLogViewSet, AuditLogViewSet
+    ConflictLogViewSet, AuditLogViewSet, DashboardStatsView,
+    FacultyAvailabilityViewSet, ElectiveBucketViewSet
 )
 
 # Create a router and register our viewsets
@@ -30,8 +31,11 @@ router.register(r'schedule-entries', ScheduleEntryViewSet, basename='schedule-en
 router.register(r'constraints', ConstraintViewSet, basename='constraint')
 router.register(r'conflict-logs', ConflictLogViewSet, basename='conflict-log')
 router.register(r'audit-logs', AuditLogViewSet, basename='audit-log')
+router.register(r'faculty-availabilities', FacultyAvailabilityViewSet, basename='faculty-availability')
+router.register(r'elective-buckets', ElectiveBucketViewSet, basename='elective-bucket')
 
 # The API URLs are now determined automatically by the router
 urlpatterns = [
     path('', include(router.urls)),
+    path('dashboard-stats/', DashboardStatsView.as_view(), name='dashboard-stats'),
 ]

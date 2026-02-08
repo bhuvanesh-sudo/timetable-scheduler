@@ -6,6 +6,7 @@ import '../styles/Login.css'; // We'll create this simple CSS
 const Login = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [selectedRole, setSelectedRole] = useState('HOD'); // Default to HOD
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const { login } = useAuth();
@@ -33,8 +34,32 @@ const Login = () => {
         <div className="login-container">
             <div className="login-card">
                 <div className="login-header">
-                    <h1>M3 Timetable</h1>
-                    <p>Sign in to access your dashboard</p>
+                    <h1>M3 HOD Portal</h1>
+                    <p>Enter Credentials</p>
+                </div>
+
+                <div className="role-selector">
+                    <button
+                        type="button"
+                        className={`role-tab ${selectedRole === 'ADMIN' ? 'active' : ''}`}
+                        onClick={() => setSelectedRole('ADMIN')}
+                    >
+                        Administrator
+                    </button>
+                    <button
+                        type="button"
+                        className={`role-tab ${selectedRole === 'HOD' ? 'active' : ''}`}
+                        onClick={() => setSelectedRole('HOD')}
+                    >
+                        HOD
+                    </button>
+                    <button
+                        type="button"
+                        className={`role-tab ${selectedRole === 'FACULTY' ? 'active' : ''}`}
+                        onClick={() => setSelectedRole('FACULTY')}
+                    >
+                        Faculty
+                    </button>
                 </div>
 
                 {error && <div className="login-error">{error}</div>}

@@ -11,7 +11,8 @@ Sprint: 1
 from rest_framework import serializers
 from .models import (
     Teacher, Course, Room, TimeSlot, Section,
-    TeacherCourseMapping, Schedule, ScheduleEntry, Constraint, ConflictLog, AuditLog
+    TeacherCourseMapping, Schedule, ScheduleEntry, Constraint, ConflictLog, AuditLog,
+    FacultyAvailability, ElectiveBucket
 )
 
 
@@ -184,6 +185,31 @@ class ConflictLogSerializer(serializers.ModelSerializer):
         model = ConflictLog
         fields = '__all__'
         read_only_fields = ['detected_at']
+
+
+class FacultyAvailabilitySerializer(serializers.ModelSerializer):
+    """
+    Serializer for FacultyAvailability model.
+    """
+    teacher_name = serializers.CharField(source='teacher.teacher_name', read_only=True)
+    slot_id = serializers.CharField(source='timeslot.slot_id', read_only=True)
+    day = serializers.CharField(source='timeslot.day', read_only=True)
+    slot_number = serializers.IntegerField(source='timeslot.slot_number', read_only=True)
+
+    class Meta:
+        model = FacultyAvailability
+        fields = ['id', 'teacher', 'teacher_name', 'timeslot', 'slot_id', 'day', 'slot_number', 'is_available', 'status', 'notes']
+
+
+class ElectiveBucketSerializer(serializers.ModelSerializer):
+    """
+    Serializer for ElectiveBucket model.
+    """
+    course_details = CourseSerializer(source='courses', many=True, read_only=True)
+
+    class Meta:
+        model = ElectiveBucket
+        fields = ['id', 'name', 'department', 'courses', 'course_details']
 
 
 # Detailed serializers for specific use cases

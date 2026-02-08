@@ -6,6 +6,8 @@
 
 import { useState, useEffect } from 'react';
 import { scheduleAPI, teacherAPI, courseAPI, roomAPI, sectionAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import HODDashboard from '../components/HODDashboard';
 
 function Dashboard() {
     const [stats, setStats] = useState({
@@ -16,10 +18,15 @@ function Dashboard() {
         schedules: 0,
     });
     const [loading, setLoading] = useState(true);
+    const { user } = useAuth();
 
     useEffect(() => {
+        if (user?.role === 'HOD') {
+            setLoading(false); // HOD Dashboard handles its own loading
+            return;
+        }
         loadStats();
-    }, []);
+    }, [user]);
 
     const loadStats = async () => {
         try {
@@ -52,6 +59,10 @@ function Dashboard() {
                 <p>Loading dashboard...</p>
             </div>
         );
+    }
+
+    if (user?.role === 'HOD') {
+        return <HODDashboard />;
     }
 
     return (
