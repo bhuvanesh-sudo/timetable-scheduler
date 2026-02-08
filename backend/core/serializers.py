@@ -11,7 +11,7 @@ Sprint: 1
 from rest_framework import serializers
 from .models import (
     Teacher, Course, Room, TimeSlot, Section,
-    TeacherCourseMapping, Schedule, ScheduleEntry, Constraint, ConflictLog, AuditLog
+    TeacherCourseMapping, Schedule, ScheduleEntry, Constraint, ConflictLog, AuditLog, ChangeRequest
 )
 
 
@@ -22,6 +22,27 @@ class AuditLogSerializer(serializers.ModelSerializer):
         model = AuditLog
         fields = ['id', 'user', 'user_name', 'action', 'model_name', 'object_id', 'details', 'ip_address', 'timestamp']
         read_only_fields = ['id', 'user', 'action', 'model_name', 'object_id', 'details', 'ip_address', 'timestamp']
+
+
+class ChangeRequestSerializer(serializers.ModelSerializer):
+    """
+    Serializer for ChangeRequest model.
+    Handles HOD modification requests that require Admin approval.
+    """
+    requested_by_name = serializers.CharField(source='requested_by.username', read_only=True)
+    requested_by_department = serializers.CharField(source='requested_by.department', read_only=True)
+    reviewed_by_name = serializers.CharField(source='reviewed_by.username', read_only=True, allow_null=True)
+    
+    class Meta:
+        model = ChangeRequest
+        fields = [
+            'id', 'requested_by', 'requested_by_name', 'requested_by_department',
+            'target_model', 'target_id', 'change_type',
+            'proposed_data', 'current_data', 'status',
+            'request_notes', 'admin_notes',
+            'created_at', 'reviewed_at', 'reviewed_by', 'reviewed_by_name'
+        ]
+        read_only_fields = ['id', 'requested_by', 'created_at', 'reviewed_at', 'reviewed_by', 'status']
 
 
 class TeacherSerializer(serializers.ModelSerializer):

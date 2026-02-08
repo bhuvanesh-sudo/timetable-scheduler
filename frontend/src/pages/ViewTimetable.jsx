@@ -134,9 +134,12 @@ function ViewTimetable() {
                                         {timetable[day]?.[slot]?.map((classItem, idx) => (
                                             <div
                                                 key={idx}
-                                                className={`class-block ${classItem.is_lab ? 'lab' : 'theory'}`}
+                                                className={`class-block ${classItem.is_lab_session ? 'lab' : 'theory'}`}
                                             >
-                                                <div className="class-code">{classItem.course_code}</div>
+                                                <div className="class-code">
+                                                    {classItem.course_code}
+                                                    {classItem.is_lab_session && <span className="lab-badge">LAB</span>}
+                                                </div>
                                                 <div className="class-teacher">{classItem.teacher_name}</div>
                                                 <div className="class-room">Room: {classItem.room}</div>
                                                 {selectedSection === '' && (

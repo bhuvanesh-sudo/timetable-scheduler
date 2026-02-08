@@ -12,16 +12,17 @@ from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Count, Q
+from django.utils import timezone
 from .models import (
     Teacher, Course, Room, TimeSlot, Section,
     TeacherCourseMapping, Schedule, ScheduleEntry,
-    Constraint, ConflictLog
+    Constraint, ConflictLog, ChangeRequest
 )
 from .serializers import (
     TeacherSerializer, CourseSerializer, RoomSerializer,
     TimeSlotSerializer, SectionSerializer, TeacherCourseMappingSerializer,
     ScheduleSerializer, ScheduleDetailSerializer, ScheduleEntrySerializer,
-    ConstraintSerializer, ConflictLogSerializer
+    ConstraintSerializer, ConflictLogSerializer, ChangeRequestSerializer
 )
 from accounts.permissions import IsAdmin, IsHODOrAdmin, IsFacultyOrAbove
 
@@ -124,13 +125,13 @@ class RoomViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class TimeSlotViewSet(viewsets.ReadOnlyModelViewSet):
+class TimeSlotViewSet(viewsets.ModelViewSet):
     """
-    API endpoint for TimeSlot (Read-only).
+    API endpoint for TimeSlot (CRUD).
     """
     queryset = TimeSlot.objects.all()
     serializer_class = TimeSlotSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsHODOrAdmin]
     
     @action(detail=False, methods=['get'])
     def by_day(self, request):
@@ -296,3 +297,105 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     search_fields = ['details', 'object_id']
 
 
+
+
+class ChangeRequestViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for Change Requests.
+    
+    HODs can create requests to modify Teacher data.
+    Admins can approve/reject these requests.
+    """
+    queryset = ChangeRequest.objects.all()
+    serializer_class = ChangeRequestSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        """
+        Filter queryset based on user role.
+        - Admin: See all requests
+        - HOD: See only their own requests
+        - Faculty: No access
+        """
+        user = self.request.user
+        if user.role == 'ADMIN':
+            return ChangeRequest.objects.all()
+        elif user.role == 'HOD':
+            return ChangeRequest.objects.filter(requested_by=user)
+        return ChangeRequest.objects.none()
+    
+    def perform_create(self, serializer):
+        """Automatically set requested_by to current user"""
+        serializer.save(requested_by=self.request.user)
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsAdmin])
+    def approve(self, request, pk=None):
+        """
+        Approve a change request and apply the changes to the database.
+        Admin only.
+        """
+        change_request = self.get_object()
+        
+        if change_request.status != 'PENDING':
+            return Response(
+                {'error': 'Only pending requests can be approved'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Apply the change based on type
+            if change_request.target_model == 'Teacher':
+                if change_request.change_type == 'CREATE':
+                    # Create new teacher
+                    Teacher.objects.create(**change_request.proposed_data)
+                
+                elif change_request.change_type == 'UPDATE':
+                    # Update existing teacher
+                    teacher = Teacher.objects.get(teacher_id=change_request.target_id)
+                    for key, value in change_request.proposed_data.items():
+                        setattr(teacher, key, value)
+                    teacher.save()
+                
+                elif change_request.change_type == 'DELETE':
+                    # Delete teacher
+                    teacher = Teacher.objects.get(teacher_id=change_request.target_id)
+                    teacher.delete()
+            
+            # Update request status
+            change_request.status = 'APPROVED'
+            change_request.reviewed_by = request.user
+            change_request.reviewed_at = timezone.now()
+            change_request.admin_notes = request.data.get('admin_notes', '')
+            change_request.save()
+            
+            serializer = self.get_serializer(change_request)
+            return Response(serializer.data)
+        
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to apply changes: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsAdmin])
+    def reject(self, request, pk=None):
+        """
+        Reject a change request without applying changes.
+        Admin only.
+        """
+        change_request = self.get_object()
+        
+        if change_request.status != 'PENDING':
+            return Response(
+                {'error': 'Only pending requests can be rejected'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        change_request.status = 'REJECTED'
+        change_request.reviewed_by = request.user
+        change_request.reviewed_at = timezone.now()
+        change_request.admin_notes = request.data.get('admin_notes', '')
+        change_request.save()
+        
+        serializer = self.get_serializer(change_request)
+        return Response(serializer.data)

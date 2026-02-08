@@ -189,7 +189,7 @@ def get_timetable_view(request):
             'teacher_name': entry.teacher.teacher_name,
             'room': entry.room.room_id,
             'section': entry.section.class_id,
-            'is_lab': entry.is_lab_session,
+            'is_lab_session': entry.is_lab_session,
             'start_time': entry.timeslot.start_time.strftime('%H:%M'),
             'end_time': entry.timeslot.end_time.strftime('%H:%M'),
         })
