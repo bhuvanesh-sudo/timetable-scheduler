@@ -1,0 +1,139 @@
+teacher_id,course_id,course_name
+T047,23MAT116,Discrete Mathematics
+T051,23MAT116,Discrete Mathematics
+T063,23MAT116,Discrete Mathematics
+T055,23MAT116,Discrete Mathematics
+T084,23MAT116,Discrete Mathematics
+T045,23MAT116,Discrete Mathematics
+T075,23MAT117,Linear Algebra
+T064,23MAT117,Linear Algebra
+T073,23MAT117,Linear Algebra
+T084,23MAT117,Linear Algebra
+T044,23MAT117,Linear Algebra
+T066,23MAT117,Linear Algebra
+T065,23CSE111,Object Oriented Programming
+T079,23CSE111,Object Oriented Programming
+T056,23CSE111,Object Oriented Programming
+T060,23CSE111,Object Oriented Programming
+T062,23CSE111,Object Oriented Programming
+T054,23CSE111,Object Oriented Programming
+T054,23PHY115,Modern Physics
+T056,23PHY115,Modern Physics
+T077,23PHY115,Modern Physics
+T059,23PHY115,Modern Physics
+T060,23PHY115,Modern Physics
+T070,23PHY115,Modern Physics
+T076,23CSE113,User Interface Design
+T062,23CSE113,User Interface Design
+T046,23CSE113,User Interface Design
+T045,23CSE113,User Interface Design
+T050,23CSE113,User Interface Design
+T078,23CSE113,User Interface Design
+T066,23MEE115,Manufacturing Practice
+T060,23MEE115,Manufacturing Practice
+T045,23MEE115,Manufacturing Practice
+T052,23MEE115,Manufacturing Practice
+T061,23MEE115,Manufacturing Practice
+T071,23MEE115,Manufacturing Practice
+T073,22ADM111,Glimpses of Glorious India
+T054,22ADM111,Glimpses of Glorious India
+T064,22ADM111,Glimpses of Glorious India
+T082,22ADM111,Glimpses of Glorious India
+T047,22ADM111,Glimpses of Glorious India
+T066,22ADM111,Glimpses of Glorious India
+T082,23MAT216,Probability and Random Processes
+T055,23MAT216,Probability and Random Processes
+T047,23MAT216,Probability and Random Processes
+T073,23MAT216,Probability and Random Processes
+T065,23MAT216,Probability and Random Processes
+T084,23MAT216,Probability and Random Processes
+T085,23CSE211,Design and Analysis of Algorithms
+T051,23CSE211,Design and Analysis of Algorithms
+T082,23CSE211,Design and Analysis of Algorithms
+T084,23CSE211,Design and Analysis of Algorithms
+T053,23CSE211,Design and Analysis of Algorithms
+T046,23CSE211,Design and Analysis of Algorithms
+T075,23CSE212,Principles of Functional Languages
+T080,23CSE212,Principles of Functional Languages
+T067,23CSE212,Principles of Functional Languages
+T048,23CSE212,Principles of Functional Languages
+T059,23CSE212,Principles of Functional Languages
+T086,23CSE212,Principles of Functional Languages
+T069,23CSE213,Computer Organization and Architecture
+T062,23CSE213,Computer Organization and Architecture
+T071,23CSE213,Computer Organization and Architecture
+T070,23CSE213,Computer Organization and Architecture
+T048,23CSE213,Computer Organization and Architecture
+T068,23CSE213,Computer Organization and Architecture
+T055,23CSE214,Operating Systems
+T067,23CSE214,Operating Systems
+T056,23CSE214,Operating Systems
+T086,23CSE214,Operating Systems
+T059,23CSE214,Operating Systems
+T075,23CSE214,Operating Systems
+T077,AVP2,Amrita Value Programme II
+T076,AVP2,Amrita Value Programme II
+T083,AVP2,Amrita Value Programme II
+T044,AVP2,Amrita Value Programme II
+T071,AVP2,Amrita Value Programme II
+T051,AVP2,Amrita Value Programme II
+T069,FREE1,Free Elective I
+T052,FREE1,Free Elective I
+T070,FREE1,Free Elective I
+T080,FREE1,Free Elective I
+T063,FREE1,Free Elective I
+T081,FREE1,Free Elective I
+T048,23LSE211,Life Skills for Engineers II
+T080,23LSE211,Life Skills for Engineers II
+T077,23LSE211,Life Skills for Engineers II
+T074,23LSE211,Life Skills for Engineers II
+T072,23LSE211,Life Skills for Engineers II
+T081,23LSE211,Life Skills for Engineers II
+T078,23CSE311,Software Engineering
+T065,23CSE311,Software Engineering
+T063,23CSE311,Software Engineering
+T083,23CSE311,Software Engineering
+T053,23CSE311,Software Engineering
+T057,23CSE311,Software Engineering
+T083,23CSE312,Distributed Systems
+T058,23CSE312,Distributed Systems
+T057,23CSE312,Distributed Systems
+T078,23CSE312,Distributed Systems
+T049,23CSE312,Distributed Systems
+T069,23CSE312,Distributed Systems
+T061,23CSE313,Foundations of Cyber Security
+T064,23CSE313,Foundations of Cyber Security
+T078,23CSE313,Foundations of Cyber Security
+T067,23CSE313,Foundations of Cyber Security
+T052,23CSE313,Foundations of Cyber Security
+T086,23CSE313,Foundations of Cyber Security
+T082,23CSE314,Compiler Design
+T080,23CSE314,Compiler Design
+T081,23CSE314,Compiler Design
+T049,23CSE314,Compiler Design
+T085,23CSE314,Compiler Design
+T058,23CSE314,Compiler Design
+T072,PE3,Professional Elective III
+T074,PE3,Professional Elective III
+T086,PE3,Professional Elective III
+T049,PE3,Professional Elective III
+T050,PE3,Professional Elective III
+T083,PE3,Professional Elective III
+T081,23CSE399,Project Phase I
+T079,23CSE399,Project Phase I
+T046,23CSE399,Project Phase I
+T053,23CSE399,Project Phase I
+T058,23CSE399,Project Phase I
+T076,23CSE399,Project Phase I
+T050,23LSE311,Life Skills for Engineers IV
+T057,23LSE311,Life Skills for Engineers IV
+T085,23LSE311,Life Skills for Engineers IV
+T061,23LSE311,Life Skills for Engineers IV
+T068,23LSE311,Life Skills for Engineers IV
+T079,23LSE311,Life Skills for Engineers IV
+T072,23CSE499,Project Phase III
+T085,23CSE499,Project Phase III
+T068,23CSE499,Project Phase III
+T044,23CSE499,Project Phase III
+T079,23CSE499,Project Phase III
+T074,23CSE499,Project Phase III

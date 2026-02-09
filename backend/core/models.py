@@ -64,6 +64,86 @@ class AuditLog(models.Model):
         ordering = ['-timestamp']
 
 
+class ChangeRequest(models.Model):
+    """
+    Track modification requests from HODs that require Admin approval.
+    
+    HODs can request changes to Teacher data, but these changes must be
+    approved by an Admin before being applied to the database.
+    """
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending Review'),
+        ('APPROVED', 'Approved'),
+        ('REJECTED', 'Rejected'),
+    ]
+    
+    CHANGE_TYPE_CHOICES = [
+        ('CREATE', 'Create New'),
+        ('UPDATE', 'Update Existing'),
+        ('DELETE', 'Delete'),
+    ]
+    
+    requested_by = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, 
+        related_name='change_requests',
+        help_text="HOD who submitted this request"
+    )
+    target_model = models.CharField(
+        max_length=50,
+        help_text="Model being modified (e.g., 'Teacher')"
+    )
+    target_id = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="ID of the object being modified (null for CREATE)"
+    )
+    change_type = models.CharField(
+        max_length=20, 
+        choices=CHANGE_TYPE_CHOICES,
+        help_text="Type of change requested"
+    )
+    proposed_data = models.JSONField(
+        help_text="New or modified data in JSON format"
+    )
+    current_data = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Current data before change (for UPDATE/DELETE)"
+    )
+    status = models.CharField(
+        max_length=20, 
+        choices=STATUS_CHOICES, 
+        default='PENDING'
+    )
+    request_notes = models.TextField(
+        blank=True,
+        help_text="HOD's explanation for the change"
+    )
+    admin_notes = models.TextField(
+        blank=True,
+        help_text="Admin's notes when reviewing"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True,
+        blank=True,
+        related_name='reviewed_requests',
+        help_text="Admin who approved/rejected this request"
+    )
+    
+    class Meta:
+        db_table = 'change_requests'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.change_type} {self.target_model} by {self.requested_by.username} - {self.status}"
+
+
 
 
 
@@ -201,13 +281,11 @@ class Section(models.Model):
         class_id: Unique section identifier (e.g., CSE1A)
         year: Year of study
         section: Section letter (A, B, C, etc.)
-        sem: Semester type (odd or even)
         department: Department code (CSE, ECE, etc.)
     """
     class_id = models.CharField(max_length=20, unique=True, primary_key=True)
     year = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(4)])
     section = models.CharField(max_length=5)
-    sem = models.CharField(max_length=10, choices=[('odd', 'Odd'), ('even', 'Even')])
     department = models.CharField(max_length=50)
     
     class Meta:

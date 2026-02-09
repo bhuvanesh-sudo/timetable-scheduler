@@ -76,7 +76,6 @@ class TestConstraintValidator:
             class_id='CSE1A',
             year=1,
             section='A',
-            sem='odd',
             department='CSE'
         )
         

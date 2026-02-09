@@ -109,6 +109,10 @@ class ConstraintValidator:
         """
         if course.is_lab and room.room_type != 'LAB':
             return False, f"Lab course {course.course_name} requires a LAB room, but {room.room_id} is a {room.room_type}"
+        
+        if not course.is_lab and room.room_type == 'LAB':
+             return False, f"Theory course {course.course_name} cannot be held in LAB room {room.room_id}"
+             
         return True, None
     
     def validate_continuous_hours(self, teacher, timeslot, max_hours=4):

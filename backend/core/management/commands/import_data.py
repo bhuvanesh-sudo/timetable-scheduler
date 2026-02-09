@@ -208,29 +208,27 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f'  ✓ Imported {count} timeslots'))
     
     def import_sections(self):
-        """Import sections from classes_odd.csv and classes_even.csv"""
+        """Import sections from classes.csv"""
         self.stdout.write('\\nImporting sections...')
         count = 0
         
-        for filename in ['classes_odd.csv', 'classes_even.csv']:
-            filepath = os.path.join(self.datasets_path, filename)
-            if not os.path.exists(filepath):
-                self.stdout.write(self.style.WARNING(f'  File not found: {filename}'))
-                continue
-            
-            with open(filepath, 'r') as file:
-                reader = csv.DictReader(file)
-                for row in reader:
-                    Section.objects.update_or_create(
-                        class_id=row['class_id'],
-                        defaults={
-                            'year': int(row['year']),
-                            'section': row['section'],
-                            'sem': row['sem'],
-                            'department': row['department'],
-                        }
-                    )
-                    count += 1
+        filepath = os.path.join(self.datasets_path, 'classes.csv')
+        if not os.path.exists(filepath):
+            self.stdout.write(self.style.ERROR('  File not found: classes.csv'))
+            return
+        
+        with open(filepath, 'r') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                Section.objects.update_or_create(
+                    class_id=row['class_id'],
+                    defaults={
+                        'year': int(row['year']),
+                        'section': row['section'],
+                        'department': row['department'],
+                    }
+                )
+                count += 1
         
         self.stdout.write(self.style.SUCCESS(f'  ✓ Imported {count} sections'))
     
