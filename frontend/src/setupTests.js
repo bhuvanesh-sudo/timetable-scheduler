@@ -1,6 +1,4 @@
 import '@testing-library/jest-dom';
-<<<<<<< HEAD
-=======
 
 // Mock matchMedia for JSDom
 Object.defineProperty(window, 'matchMedia', {
@@ -16,4 +14,3 @@ Object.defineProperty(window, 'matchMedia', {
         dispatchEvent: vi.fn(),
     })),
 });
->>>>>>> sprint1
