@@ -16,6 +16,7 @@ Sprint: 1
 
 import random
 from datetime import datetime
+from django.utils import timezone
 from django.db import transaction
 from core.models import (
     Schedule, ScheduleEntry, Section, Course, Teacher, Room,
@@ -80,18 +81,25 @@ class TimetableScheduler:
             
             # PHASE 1: LABS - Schedule Labs for ALL Sections First (Hard Constraint)
             # This ensures continuous blocks can be found before theory slots fragment the schedule
-            for section in sections:
+            # Shuffle sections to ensure fairness in resource contention
+            sections_list = list(sections)
+            random.shuffle(sections_list)
+            
+            for section in sections_list:
                 self._schedule_section_labs(section, timeslots)
 
             # PHASE 2: THEORY - Schedule Theory for ALL Sections
-            for section in sections:
+            # Reshuffle for theory phase
+            random.shuffle(sections_list)
+            
+            for section in sections_list:
                 self._schedule_section_theory(section, timeslots)
             
             # Calculate quality score
             quality = calculate_schedule_quality(self.schedule)
             self.schedule.quality_score = quality
             self.schedule.status = 'COMPLETED'
-            self.schedule.completed_at = datetime.now()
+            self.schedule.completed_at = timezone.now()
             self.schedule.save()
             
             # Build success message with year breakdown
@@ -105,14 +113,14 @@ class TimetableScheduler:
     
     def _preallocate_teachers(self, sections):
         """
-        Pre-allocate teachers using the 4+2 rule:
-        - For each course (across 8 sections of a year/sem):
-        - 6 distinct teachers available (from mappings).
-        - First 4 teachers -> 1 section each.
-        - Next 2 teachers -> 2 sections each.
-        - Total 8 sections covered.
+        Pre-allocate teachers with capacity checking (Smart 4+2 Rule).
         """
         from collections import defaultdict
+        
+        # Track estimated load (hours)
+        teacher_load = defaultdict(int) 
+        # Note: Ideally we should seed this with existing load if generating partially, 
+        # but generation is fresh for this schedule.
         
         # Group sections by year
         sections_by_year = defaultdict(list)
@@ -129,6 +137,8 @@ class TimetableScheduler:
             )
             
             for course in courses:
+                slots_per_section = course.weekly_slots
+                
                 # Get mapped teachers
                 mappings = list(TeacherCourseMapping.objects.filter(
                     course=course
@@ -143,32 +153,112 @@ class TimetableScheduler:
                         seen_ids.add(m.teacher.teacher_id)
                 
                 if not distinct_teachers:
-                    continue
-                
-                # Sort teachers (randomize for fairness)
-                random.shuffle(distinct_teachers)
-                
-                # Create allocation queue based on 4+2 rule
-                allocation_queue = []
-                
-                # First 4 teachers get 1 slot
-                for i in range(min(4, len(distinct_teachers))):
-                    allocation_queue.append(distinct_teachers[i])
+                    # Fallback Strategy: Find any teacher in the same department?
+                    # Since Course doesn't have dept, we might infer or just pick ANY available matching dept
+                    # For now, let's try to find teachers who teach SIMILAR courses?
+                    # Simplest: Find ANY teacher with capacity (Global Fallback)
+                    # To be safe, maybe restricted to department if we can guess it.
+                    # Given dataset shows mostly "CSE", we'll query all.
+                    distinct_teachers = list(Teacher.objects.all())
                     
-                # Remaining teachers get 2 slots
-                for i in range(4, len(distinct_teachers)):
-                    allocation_queue.append(distinct_teachers[i])
-                    allocation_queue.append(distinct_teachers[i])
+                    # Logic continues...
                 
-                # Assign to sections
-                for i, section in enumerate(year_sections):
-                    if i < len(allocation_queue):
-                        teacher = allocation_queue[i]
+                # Filter/Sort by available capacity
+                # We want teachers who have room for at least 1 section (slots_per_section)
+                capable_teachers = []
+                overloaded_fallback = [] # Teachers who are full but might need to be used
+                
+                for t in distinct_teachers:
+                    current = teacher_load[t.teacher_id]
+                    if current + slots_per_section <= t.max_hours_per_week:
+                        capable_teachers.append(t)
                     else:
-                        # Fallback: Round robin
-                        teacher = distinct_teachers[i % len(distinct_teachers)]
+                        overloaded_fallback.append(t)
+                
+                # If mapped capable teachers are effectively zero (e.g. all mapped are full)
+                # AND we started with mappings (not global), we should Expand Search to Global
+                is_mapped_search = (len(distinct_teachers) != Teacher.objects.count()) 
+                
+                if not capable_teachers and is_mapped_search:
+                    # Expand to all teachers with capacity
+                    all_teachers = Teacher.objects.all()
+                    for t in all_teachers:
+                        if t.teacher_id in seen_ids: continue # Already checked
+                        current = teacher_load[t.teacher_id]
+                        if current + slots_per_section <= t.max_hours_per_week:
+                            capable_teachers.append(t)
+                
+                # Prioritize capable teachers
+                # Sort by current utilization (least loaded first) to balance
+                capable_teachers.sort(key=lambda t: teacher_load[t.teacher_id])
+                
+                # If we have enough capable teachers, great.
+                # If not, add overloaded ones (sorted by least overloaded)
+                overloaded_fallback.sort(key=lambda t: teacher_load[t.teacher_id])
+                
+                pool = capable_teachers + overloaded_fallback
+                
+                # Assign to sections via Round Robin but satisfying capacity
+                # We need to maintain a pointer or strategy?
+                # Simple strategy: Iterate through pool until we find one with capacity.
+                # If all full, add to pool from global?
+                
+                # It's better to fetch ALL capable teachers upfront? 
+                # We tried that with fallback.
+                # But 'pool' was snapshot.
+                
+                # Dynamic Assignment Loop
+                for i, section in enumerate(year_sections):
+                    selected_candidate = None
                     
-                    self.teacher_assignments[(course.course_id, section.class_id)] = teacher
+                    # 1. Try from existing pool (Mapped + Fallback from before)
+                    # Sort pool by current load ASC to ensure balancing
+                    pool.sort(key=lambda t: teacher_load[t.teacher_id])
+                    
+                    for cand in pool:
+                        if teacher_load[cand.teacher_id] + slots_per_section <= cand.max_hours_per_week:
+                            selected_candidate = cand
+                            break
+                    
+                    # 2. If no candidate in pool, Try Global Search (Real-time)
+                    if not selected_candidate and is_mapped_search:
+                        # Find ANY teacher in system with capacity
+                        # Start with same dept if possible (not easy to guess), or just all
+                        # Efficiency note: optimize this query
+                        # We can iterate through ALL teachers and check `teacher_load`.
+                        # Since we have 86 teachers, it's cheap.
+                        
+                        best_global = None
+                        min_load = float('inf')
+                        
+                        all_teachers = list(Teacher.objects.all())
+                        random.shuffle(all_teachers) # Fairness
+                        
+                        for t in all_teachers:
+                            load = teacher_load[t.teacher_id]
+                            if load + slots_per_section <= t.max_hours_per_week:
+                                if load < min_load:
+                                    min_load = load
+                                    best_global = t
+                                    # Heuristic: if load is 0, pick immediately
+                                    if load == 0: break
+                        
+                        if best_global:
+                            selected_candidate = best_global
+                            # Add to pool for subsequent iterations of this course? 
+                            # Yes, effectively consistent
+                            pool.append(selected_candidate)
+                    
+                    # 3. If still no candidate, we MUST overload someone.
+                    if not selected_candidate:
+                        # Pick least loaded from pool
+                        pool.sort(key=lambda t: teacher_load[t.teacher_id])
+                        selected_candidate = pool[0] # Least loaded (even if overloaded)
+                    
+                    # Execute Assignment
+                    self.teacher_assignments[(course.course_id, section.class_id)] = selected_candidate
+                    teacher_load[selected_candidate.teacher_id] += slots_per_section
+
 
     def _schedule_section_labs(self, section, timeslots):
         """
@@ -312,8 +402,14 @@ class TimetableScheduler:
     def _can_schedule_block(self, window, section, course, teacher):
         """Check if a block of slots is valid for teacher/section."""
         for ts in window:
-            # Check if Teacher and Section are free at this timeslot
-            # We allocate Room later, so we only check person availability here
+            # Check Section availability (validator check_time_conflicts)
+            # Check Teacher availability
+            # We can use validator.validate_all() but without room (or dummy room)
+            # Or manually check basic conflicts
+            
+            # Simple check using validator internal methods if possible, or validate_all
+            # Logic: Teacher free? Section free?
+            # We assume Room search comes later
             
             t_valid, _ = self.validator.validate_faculty_availability(teacher, ts)
             if not t_valid: return False

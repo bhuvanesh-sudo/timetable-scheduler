@@ -163,7 +163,7 @@ def get_timetable_view(request):
     
     if section_id:
         query = query.filter(section_id=section_id)
-    elif teacher_id:
+    if teacher_id:
         query = query.filter(teacher_id=teacher_id)
     
     # Get entries with related data

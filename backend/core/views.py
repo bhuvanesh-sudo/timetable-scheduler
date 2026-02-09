@@ -33,6 +33,7 @@ class TeacherViewSet(viewsets.ModelViewSet):
     """
     queryset = Teacher.objects.all()
     serializer_class = TeacherSerializer
+    pagination_class = None
     
     def get_permissions(self):
         """
@@ -65,6 +66,7 @@ class CourseViewSet(viewsets.ModelViewSet):
     """
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
+    pagination_class = None
     
     def get_permissions(self):
         if self.action in ['list', 'retrieve', 'by_year', 'by_semester']:
@@ -104,6 +106,7 @@ class RoomViewSet(viewsets.ModelViewSet):
     """
     queryset = Room.objects.all()
     serializer_class = RoomSerializer
+    pagination_class = None
     
     def get_permissions(self):
         if self.action in ['list', 'retrieve', 'by_type']:
@@ -127,11 +130,18 @@ class RoomViewSet(viewsets.ModelViewSet):
 
 class TimeSlotViewSet(viewsets.ModelViewSet):
     """
-    API endpoint for TimeSlot (CRUD).
+    API endpoint for TimeSlot operations.
     """
     queryset = TimeSlot.objects.all()
     serializer_class = TimeSlotSerializer
-    permission_classes = [IsHODOrAdmin]
+    pagination_class = None
+    
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve', 'by_day']:
+            permission_classes = [permissions.IsAuthenticated]
+        else:
+            permission_classes = [IsAdmin]
+        return [permission() for permission in permission_classes]
     
     @action(detail=False, methods=['get'])
     def by_day(self, request):
@@ -152,6 +162,7 @@ class SectionViewSet(viewsets.ModelViewSet):
     """
     queryset = Section.objects.all()
     serializer_class = SectionSerializer
+    pagination_class = None
     
     def get_permissions(self):
         if self.action in ['list', 'retrieve', 'by_year']:
@@ -180,6 +191,7 @@ class TeacherCourseMappingViewSet(viewsets.ModelViewSet):
     """
     queryset = TeacherCourseMapping.objects.all()
     serializer_class = TeacherCourseMappingSerializer
+    pagination_class = None
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:

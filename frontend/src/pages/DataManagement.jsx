@@ -54,12 +54,12 @@ function DataManagement() {
                 timeslotAPI.getAll(),
             ]);
 
-            setTeachers(teachersRes.data.results || []);
-            setCourses(coursesRes.data.results || []);
-            setRooms(roomsRes.data.results || []);
-            setSections(sectionsRes.data.results || []);
-            setMappings(mappingsRes.data.results || []);
-            setTimeslots(timeslotsRes.data.results || []);
+            setTeachers(teachersRes.data.results || teachersRes.data || []);
+            setCourses(coursesRes.data.results || coursesRes.data || []);
+            setRooms(roomsRes.data.results || roomsRes.data || []);
+            setSections(sectionsRes.data.results || sectionsRes.data || []);
+            setMappings(mappingsRes.data.results || mappingsRes.data || []);
+            setTimeslots(timeslotsRes.data.results || timeslotsRes.data || []);
         } catch (error) {
             console.error('Error loading data:', error);
         } finally {
@@ -487,14 +487,14 @@ function DataManagement() {
                         className="btn btn-primary"
                         onClick={() => setShowImportModal(true)}
                     >
-                        📤 Import CSV
+                        Import CSV
                     </button>
                     {selectedItems.size > 0 && (
                         <button
                             className="btn btn-danger"
                             onClick={handleBulkDelete}
                         >
-                            🗑️ Delete Selected ({selectedItems.size})
+                            Delete Selected ({selectedItems.size})
                         </button>
                     )}
                 </div>

@@ -237,14 +237,22 @@ function ChangeRequests() {
                                         className="btn btn-success"
                                         disabled={processing}
                                     >
+<<<<<<< HEAD
                                         Approve
+=======
+                                        ✓ Approve
+>>>>>>> sprint1
                                     </button>
                                     <button
                                         onClick={() => handleReject(selectedRequest.id)}
                                         className="btn btn-danger"
                                         disabled={processing}
                                     >
+<<<<<<< HEAD
                                         Reject
+=======
+                                        ✗ Reject
+>>>>>>> sprint1
                                     </button>
                                 </>
                             )}
