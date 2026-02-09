@@ -1,0 +1,8 @@
+teacher_id,course_id,preference_level
+T001,CS101,3
+T001,CS102,2
+T002,CS103,3
+T003,CS104,3
+T002,CS105,2
+T001,CS106,3
+T004,CS107,3

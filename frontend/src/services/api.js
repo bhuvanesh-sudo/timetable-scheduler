@@ -33,7 +33,7 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor for token refresh
+// Response interceptor for handling token expiration and refresh
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -135,6 +135,17 @@ export const scheduleAPI = {
   delete: (id) => api.delete(`/schedules/${id}/`),
   getEntries: (id) => api.get(`/schedules/${id}/entries/`),
   getConflicts: (id) => api.get(`/schedules/${id}/conflicts/`),
+};
+
+
+
+// Faculty APIs
+export const facultyAPI = {
+  getMySchedule: (scheduleId) => {
+    let url = '/scheduler/my-schedule';
+    if (scheduleId) url += `?schedule_id=${scheduleId}`;
+    return api.get(url);
+  },
 };
 
 // Scheduler APIs

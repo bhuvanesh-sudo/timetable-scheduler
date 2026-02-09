@@ -1,0 +1,12 @@
+course_id,course_name,year,semester,lectures,theory,practicals,credits,is_lab,is_elective,weekly_slots
+CS101,Intro to Programming,1,odd,3,3,0,3,0,0,3
+CS102,Data Structures,2,odd,3,3,2,4,0,0,5
+CS103,Digital Logic,2,odd,3,3,0,3,0,0,3
+CS104,Database Systems,3,odd,3,3,2,4,0,0,5
+CS105,Operating Systems,3,odd,3,3,0,3,0,0,3
+CS106,Computer Networks,3,odd,3,3,0,3,0,0,3
+CS107,Software Engineering,4,odd,3,3,0,3,0,0,3
+CS108,Web Development,4,odd,2,2,2,3,0,0,4
+LAB101,Programming Lab,1,odd,0,0,3,1,1,0,3
+HUM101,Professional Ethics,1,odd,2,2,0,2,0,0,2
+ELE101,Cloud Computing,4,odd,3,3,0,3,0,1,3

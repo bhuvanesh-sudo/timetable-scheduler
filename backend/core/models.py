@@ -33,6 +33,14 @@ class User(AbstractUser):
     department = models.CharField(max_length=50, blank=True)
     phone = models.CharField(max_length=15, blank=True)
     is_protected = models.BooleanField(default=False)
+    teacher = models.ForeignKey(
+        'Teacher',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='user_account',
+        help_text="Linked teacher record for faculty/HOD users"
+    )
     
     class Meta:
         db_table = 'users'

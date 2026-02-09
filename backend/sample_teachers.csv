@@ -1,0 +1,6 @@
+teacher_id,teacher_name,email,department,max_hours_per_week
+T001,Dr. Smith,smith@univ.edu,CSE,20
+T002,Prof. Johnson,johnson@univ.edu,CSE,18
+T003,Dr. Williams,williams@univ.edu,ECE,22
+T004,Prof. Brown,brown@univ.edu,MECH,20
+T005,Dr. Jones,jones@univ.edu,CSE,16

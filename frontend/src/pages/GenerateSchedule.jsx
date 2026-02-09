@@ -75,7 +75,7 @@ function GenerateSchedule() {
                         </div>
 
                         <button type="submit" className="btn btn-success" disabled={generating}>
-                            {generating ? '⏳ Generating...' : '✨ Generate Schedule for All Years'}
+                            {generating ? 'Generating...' : 'Generate Schedule for All Years'}
                         </button>
                     </div>
                 </form>
@@ -95,7 +95,7 @@ function GenerateSchedule() {
 
                 {result && (
                     <div className="alert alert-success" style={{ marginTop: '1rem' }}>
-                        <h3 style={{ marginBottom: '0.5rem' }}>✅ Schedule Generated Successfully!</h3>
+                        <h3 style={{ marginBottom: '0.5rem' }}>Schedule Generated Successfully!</h3>
                         <p><strong>Schedule ID:</strong> {result.schedule_id}</p>
                         <p><strong>Status:</strong> {result.status}</p>
                         <p><strong>Message:</strong> {result.message}</p>

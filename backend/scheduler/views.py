@@ -195,3 +195,74 @@ def get_timetable_view(request):
         })
     
     return Response(timetable)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_my_schedule(request):
+    """
+    Get the schedule for the logged-in faculty member.
+    Automatically filters by the linked Teacher record.
+    """
+    user = request.user
+    
+    # Check if user is linked to a teacher
+    if not hasattr(user, 'teacher') or not user.teacher:
+        return Response(
+            {"error": "No teacher record linked to this account"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+        
+    teacher_id = user.teacher.teacher_id
+    schedule_id = request.query_params.get('schedule_id')
+    
+    # If no schedule_id provided, get the most recent completed one
+    if not schedule_id:
+        latest_schedule = Schedule.objects.filter(status='COMPLETED').order_by('-created_at').first()
+        if latest_schedule:
+            schedule_id = latest_schedule.schedule_id
+            
+    if not schedule_id:
+        return Response(
+            {"error": "No generated schedules found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+        
+    # Reuse the logic from get_timetable_view but force teacher_id
+    # We can call the internal logic or just reproduce it here
+    
+    # Query for the specific schedule and teacher
+    entries = ScheduleEntry.objects.filter(
+        schedule_id=schedule_id,
+        teacher_id=teacher_id
+    ).select_related(
+        'section', 'course', 'teacher', 'room', 'timeslot'
+    ).order_by('timeslot__day', 'timeslot__slot_number')
+    
+    # Organize by day and slot
+    timetable = {}
+    for entry in entries:
+        day = entry.timeslot.day
+        slot_num = entry.timeslot.slot_number
+        
+        if day not in timetable:
+            timetable[day] = {}
+        
+        if slot_num not in timetable[day]:
+            timetable[day][slot_num] = []
+        
+        timetable[day][slot_num].append({
+            'course_code': entry.course.course_id,
+            'course_name': entry.course.course_name,
+            'teacher_name': entry.teacher.teacher_name,
+            'room': entry.room.room_id,
+            'section': entry.section.class_id,
+            'is_lab_session': entry.is_lab_session,
+            'start_time': entry.timeslot.start_time.strftime('%H:%M'),
+            'end_time': entry.timeslot.end_time.strftime('%H:%M'),
+        })
+    
+    return Response({
+        'schedule_id': schedule_id,
+        'timetable': timetable
+    })

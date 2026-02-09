@@ -78,7 +78,7 @@ function ViewTimetable() {
                             <option value="">-- Select Schedule --</option>
                             {schedules.map((schedule) => (
                                 <option key={schedule.schedule_id} value={schedule.schedule_id}>
-                                    {schedule.name} (Year {schedule.year}, {schedule.semester})
+                                    All Years, {schedule.semester}
                                 </option>
                             ))}
                         </select>

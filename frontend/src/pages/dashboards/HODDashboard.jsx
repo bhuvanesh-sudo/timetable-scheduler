@@ -76,22 +76,22 @@ function HODDashboard() {
                 <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', color: 'var(--text-primary)' }}>Department Actions</h2>
                 <div className="actions-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                     <Link to="/teacher-requests" className="action-card" style={{ padding: '1.5rem', background: 'white', borderRadius: '8px', border: '1px solid #eee', textDecoration: 'none', color: 'inherit', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', transition: 'transform 0.2s' }}>
-                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary-color)' }}>👥 Teacher Requests</h3>
+                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary-color)' }}>Teacher Requests</h3>
                         <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Request changes to faculty details.</p>
                     </Link>
                     <Link to="/timetable" className="action-card" style={{ padding: '1.5rem', background: 'white', borderRadius: '8px', border: '1px solid #eee', textDecoration: 'none', color: 'inherit', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', transition: 'transform 0.2s' }}>
-                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary-color)' }}>📅 Dept Timetable</h3>
+                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary-color)' }}>Dept Timetable</h3>
                         <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>View generated schedules for {user.department}.</p>
                     </Link>
                     <Link to="/analytics" className="action-card" style={{ padding: '1.5rem', background: 'white', borderRadius: '8px', border: '1px solid #eee', textDecoration: 'none', color: 'inherit', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', transition: 'transform 0.2s' }}>
-                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary-color)' }}>📈 Workload Reports</h3>
+                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary-color)' }}>Workload Reports</h3>
                         <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Check faculty workload distribution.</p>
                     </Link>
                 </div>
             </div>
 
             <div className="card" style={{ marginTop: '2rem' }}>
-                <h3>📢 Department Notices via Scheduler</h3>
+                <h3>Department Notices via Scheduler</h3>
                 <ul>
                     <li>Please review constraints for the upcoming semester.</li>
                     <li>Ensure all elective courses are assigned to sections.</li>

@@ -142,7 +142,6 @@ class TestSectionModel:
             class_id='CSE1A',
             year=1,
             section='A',
-            sem='odd',
             department='CSE'
         )
         assert section.class_id == 'CSE1A'
