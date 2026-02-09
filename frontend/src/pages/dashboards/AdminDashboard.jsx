@@ -33,19 +33,11 @@ function AdminDashboard() {
             ]);
 
             setStats({
-<<<<<<< HEAD
-                teachers: teachers.data.results?.length || teachers.data.count || 0,
-                courses: courses.data.results?.length || courses.data.count || 0,
-                rooms: rooms.data.results?.length || rooms.data.count || 0,
-                sections: sections.data.results?.length || sections.data.count || 0,
-                schedules: schedules.data.results?.length || schedules.data.count || 0,
-=======
                 teachers: teachers.data.results?.length || teachers.data.length || 0,
                 courses: courses.data.results?.length || courses.data.length || 0,
                 rooms: rooms.data.results?.length || rooms.data.length || 0,
                 sections: sections.data.results?.length || sections.data.length || 0,
                 schedules: schedules.data.results?.length || schedules.data.length || 0,
->>>>>>> sprint1
             });
         } catch (error) {
             console.error('Error loading stats:', error);
@@ -57,22 +49,13 @@ function AdminDashboard() {
     if (loading) return <div className="loading-spinner">Loading dashboard...</div>;
 
     return (
-<<<<<<< HEAD
-        <div className="admin-dashboard">
-            <div className="page-header">
-=======
         <div className="admin-dashboard fade-in">
             <div className="page-header fade-in">
->>>>>>> sprint1
                 <h1 className="page-title">System Admin Dashboard</h1>
                 <p className="page-description">Manage system health, data, and schedules.</p>
             </div>
 
-<<<<<<< HEAD
-            <div className="stats-grid">
-=======
             <div className="stats-grid fade-in">
->>>>>>> sprint1
                 <div className="stat-card">
                     <div className="stat-label">Total Teachers</div>
                     <div className="stat-value">{stats.teachers}</div>
@@ -98,32 +81,6 @@ function AdminDashboard() {
             <div className="actions-section" style={{ marginTop: '2rem' }}>
                 <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', color: 'var(--text-primary)' }}>Quick Actions</h2>
                 <div className="actions-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-<<<<<<< HEAD
-                    <Link to="/data" className="action-card" style={{ padding: '1.5rem', background: 'white', borderRadius: '8px', border: '1px solid #eee', textDecoration: 'none', color: 'inherit', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', transition: 'transform 0.2s' }}>
-                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary-color)' }}>Data Management</h3>
-                        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Manage teachers, courses, rooms, and sections.</p>
-                    </Link>
-                    <Link to="/generate" className="action-card" style={{ padding: '1.5rem', background: 'white', borderRadius: '8px', border: '1px solid #eee', textDecoration: 'none', color: 'inherit', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', transition: 'transform 0.2s' }}>
-                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary-color)' }}>Generate Schedule</h3>
-                        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Run the scheduling algorithm.</p>
-                    </Link>
-                    <Link to="/users" className="action-card" style={{ padding: '1.5rem', background: 'white', borderRadius: '8px', border: '1px solid #eee', textDecoration: 'none', color: 'inherit', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', transition: 'transform 0.2s' }}>
-                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary-color)' }}>User Management</h3>
-                        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Manage system access and roles.</p>
-                    </Link>
-                    <Link to="/audit-logs" className="action-card" style={{ padding: '1.5rem', background: 'white', borderRadius: '8px', border: '1px solid #eee', textDecoration: 'none', color: 'inherit', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', transition: 'transform 0.2s' }}>
-                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary-color)' }}>Audit Logs</h3>
-                        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>View system activity and history.</p>
-                    </Link>
-                    <Link to="/analytics" className="action-card" style={{ padding: '1.5rem', background: 'white', borderRadius: '8px', border: '1px solid #eee', textDecoration: 'none', color: 'inherit', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', transition: 'transform 0.2s' }}>
-                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary-color)' }}>Analytics</h3>
-                        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>View workload and utilization stats.</p>
-                    </Link>
-                    <Link to="/change-requests" className="action-card" style={{ padding: '1.5rem', background: 'white', borderRadius: '8px', border: '1px solid #eee', textDecoration: 'none', color: 'inherit', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', transition: 'transform 0.2s' }}>
-                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary-color)' }}>Change Requests</h3>
-                        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Review requests from HODs.</p>
-                    </Link>
-=======
                     <Link to="/data" className="action-card">
                         <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary)' }}>Data Management</h3>
                         <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Manage teachers, courses, rooms, and sections.</p>
@@ -140,7 +97,14 @@ function AdminDashboard() {
                         <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary)' }}>Audit Logs</h3>
                         <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>View system activity and history.</p>
                     </Link>
->>>>>>> sprint1
+                    <Link to="/analytics" className="action-card">
+                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary)' }}>Analytics</h3>
+                        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>View workload and utilization stats.</p>
+                    </Link>
+                    <Link to="/change-requests" className="action-card">
+                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary)' }}>Change Requests</h3>
+                        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Review requests from HODs.</p>
+                    </Link>
                 </div>
             </div>
         </div>
