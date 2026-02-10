@@ -20,6 +20,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
 from accounts.permissions import IsAdmin
+from core.models import AuditLog
 
 
 BACKUP_DIR = os.path.join(settings.BASE_DIR, 'backups')
@@ -96,6 +97,16 @@ def create_backup(request):
                     metadata[latest] = {'label': label}
                     _save_metadata(metadata)
 
+                # Log to audit trail
+                AuditLog.objects.create(
+                    user_name=request.user.username if request.user.is_authenticated else 'System',
+                    action='BACKUP',
+                    model_name='Database',
+                    object_id=latest,
+                    details={'label': label, 'size': _format_size(os.path.getsize(filepath))},
+                    ip_address=request.META.get('REMOTE_ADDR'),
+                )
+
                 return Response({
                     'message': f'Backup created: {latest}',
                     'filename': latest,
@@ -151,6 +162,16 @@ def restore_backup(request, filename):
 
         # Perform the restore
         shutil.copy2(backup_path, db_path)
+
+        # Log to audit trail (this goes to audit_db, which is NOT restored)
+        AuditLog.objects.create(
+            user_name=request.user.username if request.user.is_authenticated else 'System',
+            action='RESTORE',
+            model_name='Database',
+            object_id=filename,
+            details={'safety_backup': safety_name, 'restored_from': filename},
+            ip_address=request.META.get('REMOTE_ADDR'),
+        )
 
         return Response({
             'message': f'Database restored from {filename}',

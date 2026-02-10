@@ -88,8 +88,14 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    },
+    'audit_db': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'audit_db.sqlite3',
+    },
 }
+
+DATABASE_ROUTERS = ['timetable_project.db_router.AuditLogRouter']
 
 
 # Password validation
