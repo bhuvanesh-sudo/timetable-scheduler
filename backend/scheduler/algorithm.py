@@ -438,7 +438,9 @@ class TimetableScheduler:
     
     def _find_suitable_room(self, course, timeslot):
         """
-        Find a suitable room for a course at a given timeslot.
+        Find a suitable CLASSROOM for a theory session at a given timeslot.
+        This method is only called from Phase 2 (theory scheduling).
+        Lab/practical sessions use _find_block_room instead.
         
         Args:
             course: Course object
@@ -447,20 +449,12 @@ class TimetableScheduler:
         Returns:
             Room object or None
         """
-        # Determine required room type
-        if course.is_lab:
-            room_type = 'LAB'
-        else:
-            room_type = 'CLASSROOM'
-        
-        # Get all rooms of the required type
-        rooms = Room.objects.filter(room_type=room_type)
-        
-        # Shuffle for variety
-        rooms = list(rooms)
+        # Theory sessions always go in classrooms,
+        # regardless of course.is_lab flag.
+        # Practical sessions are handled by _find_block_room.
+        rooms = list(Room.objects.filter(room_type='CLASSROOM'))
         random.shuffle(rooms)
         
-        # Find first available room
         for room in rooms:
             is_valid, _ = self.validator.validate_room_availability(room, timeslot)
             if is_valid:

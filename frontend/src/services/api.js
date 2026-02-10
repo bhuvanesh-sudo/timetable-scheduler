@@ -159,6 +159,7 @@ export const schedulerAPI = {
     if (teacher) url += `&teacher=${teacher}`;
     return api.get(url);
   },
+  validateSchedule: (scheduleId) => api.get(`/scheduler/validate/${scheduleId}/`),
 };
 
 export const auditLogAPI = {

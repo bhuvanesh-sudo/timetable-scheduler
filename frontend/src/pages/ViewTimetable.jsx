@@ -20,6 +20,9 @@ function ViewTimetable() {
 
     const [timetable, setTimetable] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [verificationResult, setVerificationResult] = useState(null);
+    const [showVerificationModal, setShowVerificationModal] = useState(false);
+    const [verifying, setVerifying] = useState(false);
 
     const days = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
     const slots = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -87,6 +90,22 @@ function ViewTimetable() {
         }
     };
 
+    const handleVerifySchedule = async () => {
+        if (!selectedSchedule) return;
+
+        setVerifying(true);
+        try {
+            const response = await schedulerAPI.validateSchedule(selectedSchedule);
+            setVerificationResult(response.data);
+            setShowVerificationModal(true);
+        } catch (error) {
+            console.error('Verification failed:', error);
+            alert('Failed to verify schedule');
+        } finally {
+            setVerifying(false);
+        }
+    };
+
     useEffect(() => {
         if (selectedSchedule) {
             loadTimetable();
@@ -124,25 +143,35 @@ function ViewTimetable() {
                             ))}
                         </select>
                         {(selectedSchedule && (user?.role === 'ADMIN' || user?.role === 'HOD')) && (
-                            <button
-                                className="btn btn-danger"
-                                onClick={async () => {
-                                    if (window.confirm("Are you sure you want to delete this schedule?")) {
-                                        try {
-                                            await scheduleAPI.delete(selectedSchedule);
-                                            alert("Schedule deleted successfully.");
-                                            setSelectedSchedule('');
-                                            setTimetable(null);
-                                            loadInitialData();
-                                        } catch (err) {
-                                            alert("Error deleting schedule");
+                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+                                <button
+                                    className="btn btn-success"
+                                    onClick={handleVerifySchedule}
+                                    disabled={verifying}
+                                    style={{ flex: 1 }}
+                                >
+                                    {verifying ? 'Verifying...' : 'Verify Schedule'}
+                                </button>
+                                <button
+                                    className="btn btn-danger"
+                                    onClick={async () => {
+                                        if (window.confirm("Are you sure you want to delete this schedule?")) {
+                                            try {
+                                                await scheduleAPI.delete(selectedSchedule);
+                                                alert("Schedule deleted successfully.");
+                                                setSelectedSchedule('');
+                                                setTimetable(null);
+                                                loadInitialData();
+                                            } catch (err) {
+                                                alert("Error deleting schedule");
+                                            }
                                         }
-                                    }
-                                }}
-                                style={{ marginTop: '0.5rem', width: '100%' }}
-                            >
-                                Delete Schedule
-                            </button>
+                                    }}
+                                    style={{ flex: 1 }}
+                                >
+                                    Delete Schedule
+                                </button>
+                            </div>
                         )}
                     </div>
 
@@ -258,6 +287,80 @@ function ViewTimetable() {
             {!selectedSchedule && (
                 <div className="alert alert-info">
                     Please select a schedule to view the timetable.
+                </div>
+            )}
+            {/* Verification Modal */}
+            {showVerificationModal && verificationResult && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0, 0, 0, 0.5)',
+                    backdropFilter: 'blur(4px)',
+                    WebkitBackdropFilter: 'blur(4px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    zIndex: 1000,
+                    animation: 'fadeIn 0.3s ease-out',
+                }}>
+                    <div style={{
+                        background: 'var(--card-bg)',
+                        border: '1px solid var(--card-border)',
+                        borderRadius: 'var(--radius-lg)',
+                        boxShadow: 'var(--shadow-xl)',
+                        padding: 'var(--spacing-lg)',
+                        maxWidth: '480px',
+                        width: '90%',
+                        maxHeight: '80vh',
+                        overflow: 'auto',
+                    }}>
+                        <h3 style={{
+                            fontSize: '1.25rem',
+                            fontWeight: 700,
+                            color: 'var(--text-primary)',
+                            marginBottom: '0.25rem',
+                        }}>
+                            {verificationResult.valid ? 'Schedule Verified' : 'Issues Detected'}
+                        </h3>
+                        <p style={{
+                            color: 'var(--text-muted)',
+                            fontSize: '0.875rem',
+                            marginBottom: 'var(--spacing-md)',
+                        }}>
+                            {verificationResult.valid
+                                ? 'No conflicts found. This schedule is ready to publish.'
+                                : `${verificationResult.conflicts.length} conflict(s) need attention before publishing.`
+                            }
+                        </p>
+
+                        {!verificationResult.valid && (
+                            <div style={{
+                                background: 'var(--bg-tertiary)',
+                                borderRadius: 'var(--radius-md)',
+                                padding: 'var(--spacing-sm) var(--spacing-md)',
+                                marginBottom: 'var(--spacing-lg)',
+                                maxHeight: '220px',
+                                overflowY: 'auto',
+                                border: '1px solid var(--border)',
+                            }}>
+                                {verificationResult.conflicts.map((conflict, idx) => (
+                                    <div key={idx} style={{
+                                        padding: '0.5rem 0',
+                                        borderBottom: idx < verificationResult.conflicts.length - 1 ? '1px solid var(--border)' : 'none',
+                                        fontSize: '0.85rem',
+                                        color: 'var(--text-primary)',
+                                    }}>
+                                        {conflict}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        <button
+                            className="btn btn-primary"
+                            onClick={() => setShowVerificationModal(false)}
+                            style={{ width: '100%' }}
+                        >
+                            Close
+                        </button>
+                    </div>
                 </div>
             )}
         </div>
