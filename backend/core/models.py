@@ -49,6 +49,7 @@ class User(AbstractUser):
 class AuditLog(models.Model):
     """
     Track critical system changes for accountability.
+    Stored in a separate database (audit_db) to survive backup/restore.
     """
     ACTION_CHOICES = [
         ('CREATE', 'Created'),
@@ -57,9 +58,11 @@ class AuditLog(models.Model):
         ('LOGIN', 'Logged In'),
         ('LOGOUT', 'Logged Out'),
         ('GENERATE', 'Generated Schedule'),
+        ('BACKUP', 'Backup Created'),
+        ('RESTORE', 'Database Restored'),
     ]
     
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    user_name = models.CharField(max_length=150, blank=True, null=True)
     action = models.CharField(max_length=20, choices=ACTION_CHOICES)
     model_name = models.CharField(max_length=50)
     object_id = models.CharField(max_length=100, blank=True, null=True)

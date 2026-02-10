@@ -2,12 +2,12 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.core.serializers.json import DjangoJSONEncoder
 from django.forms.models import model_to_dict
-from core.models import Teacher, Course, Room, Section, Constraint, Schedule, AuditLog
+from core.models import Teacher, Course, Room, Section, Constraint, Schedule, AuditLog, User
 from .middleware import get_current_user, get_current_request
 import json
 
 # List of models to track
-TRACKED_MODELS = [Teacher, Course, Room, Section, Constraint, Schedule]
+TRACKED_MODELS = [Teacher, Course, Room, Section, Constraint, Schedule, User]
 
 def get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
@@ -44,7 +44,7 @@ def log_create_update(sender, instance, created, **kwargs):
         details = {}
 
     AuditLog.objects.create(
-        user=user if user and user.is_authenticated else None,
+        user_name=user.username if user and user.is_authenticated else 'System',
         action=action,
         model_name=sender.__name__,
         object_id=str(instance.pk),
@@ -58,7 +58,7 @@ def log_delete(sender, instance, **kwargs):
     ip_address = get_client_ip(request) if request else None
     
     AuditLog.objects.create(
-        user=user if user and user.is_authenticated else None,
+        user_name=user.username if user and user.is_authenticated else 'System',
         action='DELETE',
         model_name=sender.__name__,
         object_id=str(instance.pk),
