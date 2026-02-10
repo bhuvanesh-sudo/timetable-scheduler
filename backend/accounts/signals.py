@@ -67,5 +67,36 @@ def log_delete(sender, instance, **kwargs):
     )
 
 # Connect signals manually or in apps.py
-# If I use @receiver on list, it's harder. 
+# If I use @receiver on list, it's harder.
 # register_signals() needs to be called.
+
+@receiver(post_save, sender=Teacher)
+def create_faculty_user(sender, instance, created, **kwargs):
+    """
+    Automatically create a User account for a new Teacher.
+    Username: Teacher ID
+    Password: TeacherID@123
+    Role: FACULTY
+    """
+    if created:
+        # Check if user already exists
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+
+        if not User.objects.filter(username=instance.teacher_id).exists():
+            try:
+                # Create the user
+                user = User.objects.create_user(
+                    username=instance.teacher_id,
+                    email=instance.email,
+                    password=f"{instance.teacher_id}@123",  # Default password
+                    first_name=instance.teacher_name.split(' ')[0],
+                    last_name=' '.join(instance.teacher_name.split(' ')[1:]),
+                    role='FACULTY',
+                    department=instance.department,
+                    teacher=instance
+                )
+                print(f"  [Auto-Create] Created user for {instance.teacher_id}")
+            except Exception as e:
+                print(f"  [Auto-Create] Failed to create user for {instance.teacher_id}: {e}")
+
