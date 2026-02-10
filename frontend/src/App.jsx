@@ -16,6 +16,7 @@ import AuditLogs from './pages/AuditLogs';
 import UserManagement from './pages/UserManagement';
 import ChangeRequests from './pages/ChangeRequests';
 import TeacherRequests from './pages/TeacherRequests';
+import SystemHealth from './pages/SystemHealth';
 import Login from './pages/Login';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
@@ -79,6 +80,11 @@ const MainLayout = ({ children }) => {
                 <li className="nav-item">
                   <Link to="/audit-logs" className="nav-link">
                     Audit Logs
+                  </Link>
+                </li>
+                <li className="nav-item">
+                  <Link to="/system-health" className="nav-link">
+                    System Health
                   </Link>
                 </li>
               </>
@@ -235,6 +241,12 @@ function App() {
             <Route path="/audit-logs" element={
               <ProtectedRoute roles={['ADMIN']}>
                 <MainLayout><AuditLogs /></MainLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/system-health" element={
+              <ProtectedRoute roles={['ADMIN']}>
+                <MainLayout><SystemHealth /></MainLayout>
               </ProtectedRoute>
             } />
 
