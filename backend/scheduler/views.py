@@ -329,18 +329,19 @@ def validate_schedule(request, schedule_id):
             f"Section '{s.class_id}' has {check_count} classes at {ts.day} Slot {ts.slot_number}"
         )
 
-    # 4. Room-type mismatch (lab course in theory room or vice versa)
+    # 4. Room-type mismatch (lab session in theory room or vice versa)
     for entry in entries.select_related('course', 'room'):
-        course = entry.course
         room = entry.room
-        if course.is_lab and room.room_type != 'LAB':
-            conflicts.append(
-                f"Lab course '{course.course_name}' assigned to non-lab room '{room.room_id}'"
-            )
-        elif not course.is_lab and room.room_type == 'LAB':
-            conflicts.append(
-                f"Theory course '{course.course_name}' assigned to lab room '{room.room_id}'"
-            )
+        if entry.is_lab_session:
+            if room.room_type != 'LAB':
+                conflicts.append(
+                    f"Lab session for '{entry.course.course_name}' assigned to non-lab room '{room.room_id}'"
+                )
+        else:
+            if room.room_type == 'LAB':
+                conflicts.append(
+                    f"Theory session for '{entry.course.course_name}' assigned to lab room '{room.room_id}'"
+                )
 
     return Response({
         "valid": len(conflicts) == 0,
