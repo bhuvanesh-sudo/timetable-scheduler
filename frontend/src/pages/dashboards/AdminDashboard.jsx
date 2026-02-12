@@ -130,102 +130,78 @@ function AdminDashboard() {
                 </div>
             </div>
 
-            <div className="danger-zone" style={{ marginTop: '3rem', padding: '1.5rem', border: '1px solid #fee2e2', borderRadius: '8px', backgroundColor: '#fef2f2' }}>
-                <h2 style={{ color: '#dc2626', fontSize: '1.25rem', marginTop: 0 }}>System Administration</h2>
-                <p style={{ color: '#7f1d1d', marginBottom: '1rem' }}>Critical actions for system maintenance.</p>
-                <button
-                    onClick={() => setShowResetModal(true)}
-                    style={{
-                        backgroundColor: '#dc2626',
-                        color: 'white',
-                        padding: '0.75rem 1.5rem',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontWeight: '600'
-                    }}
-                >
-                    End Semester & Reset
-                </button>
+
+            {/* System Administration Section */}
+            <div className="section-header" style={{ marginTop: '3rem', marginBottom: '1rem' }}>
+                <h2 style={{ fontSize: '1.25rem', color: 'var(--text-primary)' }}>System Administration</h2>
+            </div>
+
+            <div className="card" style={{ borderLeft: '4px solid var(--danger)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>End Semester Rollover</h3>
+                        <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: 0 }}>
+                            Archive current semester data and reset schedules.
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => setShowResetModal(true)}
+                        className="btn btn-danger"
+                    >
+                        Reset Semester
+                    </button>
+                </div>
             </div>
 
             {/* Reset Modal */}
             {showResetModal && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: 'rgba(0,0,0,0.5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1000
-                }}>
-                    <div style={{
-                        backgroundColor: 'white',
-                        padding: '2rem',
-                        borderRadius: '8px',
-                        maxWidth: '500px',
-                        width: '90%'
-                    }}>
-                        <h3 style={{ color: '#dc2626', marginTop: 0 }}>⚠️ End Semester Rollover</h3>
-                        <p>This action will <strong>PERMANENTLY DELETE</strong>:</p>
-                        <ul style={{ color: '#4b5563' }}>
-                            <li>All Generated Schedules</li>
-                            <li>All Teacher-Course Assignments</li>
-                            <li>Conflict Logs</li>
-                        </ul>
-                        <p style={{ fontSize: '0.9rem', color: '#6b7280' }}>
-                            Teachers, Courses, Rooms, Sections, and User accounts will be <strong>preserved</strong>.<br />
-                            A backup will be created automatically before deletion.
-                        </p>
-
-                        <div style={{ marginTop: '1.5rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-                                Type "CONFIRM" to proceed:
-                            </label>
-                            <input
-                                type="text"
-                                value={confirmText}
-                                onChange={(e) => setConfirmText(e.target.value)}
-                                placeholder="CONFIRM"
-                                style={{
-                                    width: '100%',
-                                    padding: '0.5rem',
-                                    border: '1px solid #d1d5db',
-                                    borderRadius: '4px',
-                                    marginBottom: '1rem'
-                                }}
-                            />
+                <div className="modal-overlay">
+                    <div className="modal-content" style={{ maxWidth: '400px' }}>
+                        <div className="modal-header" style={{ marginBottom: '1rem' }}>
+                            <h3 className="modal-title" style={{ fontSize: '1.25rem' }}>
+                                End Semester Rollover
+                            </h3>
                         </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                        <div className="modal-body" style={{ fontSize: '0.9rem' }}>
+                            <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>
+                                This action will <strong>permanently delete</strong> all schedules and teacher-course assignments.
+                            </p>
+
+                            <div className="modal-warning-box" style={{ padding: '0.75rem', fontSize: '0.85rem' }}>
+                                Master data (Teachers, Courses, Data) will be preserved. A backup is created automatically.
+                            </div>
+
+                            <div style={{ marginTop: '1.5rem' }}>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.85rem' }}>
+                                    Type <strong>CONFIRM</strong> to proceed:
+                                </label>
+                                <input
+                                    type="text"
+                                    className="modal-input"
+                                    value={confirmText}
+                                    onChange={(e) => setConfirmText(e.target.value)}
+                                    placeholder="CONFIRM"
+                                    autoFocus
+                                    style={{ padding: '0.5rem' }}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="modal-footer" style={{ marginTop: '1.5rem' }}>
                             <button
                                 onClick={() => { setShowResetModal(false); setConfirmText(''); }}
-                                style={{
-                                    padding: '0.5rem 1rem',
-                                    backgroundColor: '#f3f4f6',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer'
-                                }}
+                                className="btn btn-secondary"
+                                style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
                                 disabled={resetting}
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleResetSemester}
+                                className="btn btn-danger"
+                                style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
                                 disabled={confirmText !== 'CONFIRM' || resetting}
-                                style={{
-                                    padding: '0.5rem 1rem',
-                                    backgroundColor: confirmText === 'CONFIRM' ? '#dc2626' : '#9ca3af',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    cursor: confirmText === 'CONFIRM' ? 'pointer' : 'not-allowed'
-                                }}
                             >
                                 {resetting ? 'Resetting...' : 'Confirm Reset'}
                             </button>
