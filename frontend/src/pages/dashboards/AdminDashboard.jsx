@@ -100,32 +100,32 @@ function AdminDashboard() {
                 </div>
             </div>
 
-            <div className="actions-section" style={{ marginTop: '2rem' }}>
-                <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', color: 'var(--text-primary)' }}>Quick Actions</h2>
-                <div className="actions-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+            <div className="actions-section">
+                <h2 className="actions-header">Quick Actions</h2>
+                <div className="actions-grid">
                     <Link to="/data" className="action-card">
-                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary)' }}>Data Management</h3>
-                        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Manage teachers, courses, rooms, and sections.</p>
+                        <h3>Data Management</h3>
+                        <p>Manage teachers, courses, rooms, and sections.</p>
                     </Link>
                     <Link to="/generate" className="action-card">
-                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary)' }}>Generate Schedule</h3>
-                        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Run the scheduling algorithm.</p>
+                        <h3>Generate Schedule</h3>
+                        <p>Run the scheduling algorithm.</p>
                     </Link>
                     <Link to="/users" className="action-card">
-                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary)' }}>User Management</h3>
-                        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Manage system access and roles.</p>
+                        <h3>User Management</h3>
+                        <p>Manage system access and roles.</p>
                     </Link>
                     <Link to="/audit-logs" className="action-card">
-                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary)' }}>Audit Logs</h3>
-                        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>View system activity and history.</p>
+                        <h3>Audit Logs</h3>
+                        <p>View system activity and history.</p>
                     </Link>
                     <Link to="/analytics" className="action-card">
-                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary)' }}>Analytics</h3>
-                        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>View workload and utilization stats.</p>
+                        <h3>Analytics</h3>
+                        <p>View workload and utilization stats.</p>
                     </Link>
                     <Link to="/change-requests" className="action-card">
-                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary)' }}>Change Requests</h3>
-                        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Review requests from HODs.</p>
+                        <h3>Change Requests</h3>
+                        <p>Review requests from HODs.</p>
                     </Link>
                 </div>
             </div>

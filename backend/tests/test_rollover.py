@@ -7,7 +7,7 @@ from core.models import (
 
 from unittest.mock import patch
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases=['default', 'audit_db'])
 class TestSemesterRollover:
     def test_rollover_safety_lock(self, api_client, admin_user):
         """Test that missing confirmation fails."""

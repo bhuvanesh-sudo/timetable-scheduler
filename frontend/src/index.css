@@ -575,6 +575,53 @@ input:checked+.slider:before {
   box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
 }
 
+/* === DASHBOARD ACTIONS === */
+.actions-section {
+  margin-top: var(--spacing-xl);
+}
+
+.actions-header {
+  font-size: 1.25rem;
+  margin-bottom: var(--spacing-md);
+  color: var(--text-primary);
+}
+
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.action-card {
+  background: var(--action-card-bg);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  text-decoration: none;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.action-card:hover {
+  background: var(--action-card-hover);
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.action-card h3 {
+  margin: 0 0 0.5rem 0;
+  color: var(--primary);
+  font-size: 1.1rem;
+}
+
+.action-card p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
 /* === DASHBOARD STATS === */
 .stats-grid {
   display: grid;

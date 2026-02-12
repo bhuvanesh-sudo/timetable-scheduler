@@ -3,7 +3,7 @@ from django.urls import reverse
 from rest_framework import status
 from core.models import Schedule
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases=['default', 'audit_db'])
 class TestModule4BackendAPI:
     """
     Module 4: Backend APIs (Views & Serializers)
