@@ -40,18 +40,27 @@ def list_backups(request):
     metadata = _load_metadata()
 
     backups = []
-    for filename in sorted(os.listdir(BACKUP_DIR), reverse=True):
+    for filename in os.listdir(BACKUP_DIR):
         if filename.startswith('db_') and filename.endswith('.sqlite3'):
             filepath = os.path.join(BACKUP_DIR, filename)
             stat = os.stat(filepath)
             
-            # Parse timestamp from filename: db_YYYY-MM-DD_HHMMSS.sqlite3
+            # Parse timestamp from filename: db_YYYY-MM-DD_HHMMSS.sqlite3 or db_pre_restore_YYYY...
+            created_iso = None
+            timestamp_obj = datetime.min # Default for sorting if parsing fails
+
             try:
-                date_str = filename.replace('db_', '').replace('.sqlite3', '')
+                date_str = filename.replace('.sqlite3', '')
+                if date_str.startswith('db_pre_restore_'):
+                    date_str = date_str.replace('db_pre_restore_', '')
+                elif date_str.startswith('db_'):
+                    date_str = date_str.replace('db_', '')
+                
                 created = datetime.strptime(date_str, '%Y-%m-%d_%H%M%S')
                 created_iso = created.isoformat()
+                timestamp_obj = created
             except ValueError:
-                created_iso = None
+                pass
 
             backups.append({
                 'filename': filename,
@@ -59,7 +68,15 @@ def list_backups(request):
                 'size_bytes': stat.st_size,
                 'size_display': _format_size(stat.st_size),
                 'created_at': created_iso,
+                '_sort_key': timestamp_obj, # temporary key for sorting
             })
+
+    # Sort by timestamp descending (newest first)
+    backups.sort(key=lambda x: x['_sort_key'], reverse=True)
+
+    # Remove the temporary sort key
+    for b in backups:
+        del b['_sort_key']
 
     return Response({
         'backups': backups,
@@ -78,52 +95,122 @@ def create_backup(request):
     label = request.data.get('label', '').strip() if request.data else ''
 
     try:
-        # Use the management command
-        call_command('backup_db')
-
-        # Return the latest backup info
-        if os.path.exists(BACKUP_DIR):
-            files = sorted([
-                f for f in os.listdir(BACKUP_DIR)
-                if f.startswith('db_') and f.endswith('.sqlite3')
-            ])
-            if files:
-                latest = files[-1]
-                filepath = os.path.join(BACKUP_DIR, latest)
-
-                # Save label in metadata
-                if label:
-                    metadata = _load_metadata()
-                    metadata[latest] = {'label': label}
-                    _save_metadata(metadata)
-
-                # Log to audit trail
-                AuditLog.objects.create(
-                    user_name=request.user.username if request.user.is_authenticated else 'System',
-                    action='BACKUP',
-                    model_name='Database',
-                    object_id=latest,
-                    details={'label': label, 'size': _format_size(os.path.getsize(filepath))},
-                    ip_address=request.META.get('REMOTE_ADDR'),
-                )
-
-                return Response({
-                    'message': f'Backup created: {latest}',
-                    'filename': latest,
-                    'label': label,
-                    'size_bytes': os.path.getsize(filepath),
-                    'size_display': _format_size(os.path.getsize(filepath)),
-                }, status=status.HTTP_201_CREATED)
-
-        return Response(
-            {'error': 'Backup command ran but no file was created'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        # Use common helper for backup
+        backup_info = _create_db_backup(label)
+        
+        # Log to audit trail
+        AuditLog.objects.create(
+            user_name=request.user.username if request.user.is_authenticated else 'System',
+            action='BACKUP',
+            model_name='Database',
+            object_id=backup_info['filename'],
+            details={'label': label, 'size': backup_info['size_display']},
+            ip_address=request.META.get('REMOTE_ADDR'),
         )
+
+        return Response(backup_info, status=status.HTTP_201_CREATED)
+
     except Exception as e:
         return Response(
             {'error': f'Backup failed: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+@api_view(['POST'])
+@permission_classes([IsAdmin])
+def reset_semester(request):
+    """
+    Archive current data and reset for new semester.
+    POST /api/system/reset-semester/
+    Body: {"confirmation": "CONFIRM"}
+    
+    Preserves: Teachers, Courses, Rooms, Sections, Users.
+    Deletes: Schedules, Mappings, Conflicts, ChangeRequests.
+    """
+    confirmation = request.data.get('confirmation', '')
+    if confirmation != 'CONFIRM':
+        return Response(
+            {'error': 'Safety lock active. You must type "CONFIRM" to proceed.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        # 1. Create Archive Backup
+        backup_info = _create_db_backup("Pre-Rollover Archive")
+        
+        # 2. Perform Reset
+        from django.db import transaction
+        from core.models import Schedule, TeacherCourseMapping, ConflictLog, ChangeRequest
+        
+        with transaction.atomic():
+            # Delete operational data
+            schedule_count, _ = Schedule.objects.all().delete()
+            mapping_count, _ = TeacherCourseMapping.objects.all().delete()
+            conflict_count, _ = ConflictLog.objects.all().delete()
+            request_count, _ = ChangeRequest.objects.all().delete()
+            
+            # Log the reset
+            AuditLog.objects.create(
+                user_name=request.user.username if request.user.is_authenticated else 'System',
+                action='UPDATE', # Using UPDATE as we are modifying system state significantly
+                model_name='System',
+                object_id='SEMESTER_RESET',
+                details={
+                    'backup': backup_info['filename'],
+                    'deleted': {
+                        'schedules': schedule_count,
+                        'mappings': mapping_count,
+                        'conflicts': conflict_count,
+                        'requests': request_count
+                    }
+                },
+                ip_address=request.META.get('REMOTE_ADDR'),
+            )
+
+        return Response({
+            'message': 'Semester reset successful.',
+            'backup': backup_info['filename'],
+            'stats': {
+                'schedules_deleted': schedule_count,
+                'mappings_deleted': mapping_count,
+            }
+        })
+
+    except Exception as e:
+        return Response(
+            {'error': f'Reset failed: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+def _create_db_backup(label):
+    """Helper to create a database backup and return its info dict."""
+    call_command('backup_db')
+
+    if os.path.exists(BACKUP_DIR):
+        files = sorted([
+            f for f in os.listdir(BACKUP_DIR)
+            if f.startswith('db_') and f.endswith('.sqlite3')
+        ])
+        if files:
+            latest = files[-1]
+            filepath = os.path.join(BACKUP_DIR, latest)
+
+            # Save label in metadata
+            if label:
+                metadata = _load_metadata()
+                metadata[latest] = {'label': label}
+                _save_metadata(metadata)
+            
+            return {
+                'message': f'Backup created: {latest}',
+                'filename': latest,
+                'label': label,
+                'size_bytes': os.path.getsize(filepath),
+                'size_display': _format_size(os.path.getsize(filepath)),
+            }
+            
+    raise Exception('Backup command ran but no file was created')
 
 
 @api_view(['POST'])
