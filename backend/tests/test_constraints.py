@@ -15,7 +15,7 @@ from core.models import (
 from scheduler.constraints import ConstraintValidator
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases=['default', 'audit_db'])
 class TestConstraintValidator:
     """Test cases for constraint validation"""
     

@@ -1,0 +1,187 @@
+teacher_id,course_id,course_name
+T019,23ENG101,Technical Communication
+T030,23ENG101,Technical Communication
+T039,23ENG101,Technical Communication
+T041,23ENG101,Technical Communication
+T015,23ENG101,Technical Communication
+T021,23ENG101,Technical Communication
+T016,23MAT107,Calculus
+T042,23MAT107,Calculus
+T028,23MAT107,Calculus
+T014,23MAT107,Calculus
+T004,23MAT107,Calculus
+T033,23MAT107,Calculus
+T020,23CSE101,Computational Problem Solving
+T038,23CSE101,Computational Problem Solving
+T010,23CSE101,Computational Problem Solving
+T012,23CSE101,Computational Problem Solving
+T042,23CSE101,Computational Problem Solving
+T025,23CSE101,Computational Problem Solving
+T029,23EEE104,Introduction to Electrical and Electronics Engineering
+T020,23EEE104,Introduction to Electrical and Electronics Engineering
+T001,23EEE104,Introduction to Electrical and Electronics Engineering
+T031,23EEE104,Introduction to Electrical and Electronics Engineering
+T041,23EEE104,Introduction to Electrical and Electronics Engineering
+T005,23EEE104,Introduction to Electrical and Electronics Engineering
+T001,23EEE184,Basic Electrical and Electronics Engineering Practice
+T018,23EEE184,Basic Electrical and Electronics Engineering Practice
+T034,23EEE184,Basic Electrical and Electronics Engineering Practice
+T008,23EEE184,Basic Electrical and Electronics Engineering Practice
+T041,23EEE184,Basic Electrical and Electronics Engineering Practice
+T026,23EEE184,Basic Electrical and Electronics Engineering Practice
+T041,23CSE102,Computer Hardware Essentials
+T035,23CSE102,Computer Hardware Essentials
+T032,23CSE102,Computer Hardware Essentials
+T028,23CSE102,Computer Hardware Essentials
+T017,23CSE102,Computer Hardware Essentials
+T003,23CSE102,Computer Hardware Essentials
+T002,22ADM101,Foundations of Indian Heritage
+T015,22ADM101,Foundations of Indian Heritage
+T007,22ADM101,Foundations of Indian Heritage
+T040,22ADM101,Foundations of Indian Heritage
+T036,22ADM101,Foundations of Indian Heritage
+T033,22ADM101,Foundations of Indian Heritage
+T008,22AVP103,Mastery Over Mind
+T001,22AVP103,Mastery Over Mind
+T006,22AVP103,Mastery Over Mind
+T025,22AVP103,Mastery Over Mind
+T036,22AVP103,Mastery Over Mind
+T037,22AVP103,Mastery Over Mind
+T031,23MAT206,Optimization Techniques
+T014,23MAT206,Optimization Techniques
+T034,23MAT206,Optimization Techniques
+T032,23MAT206,Optimization Techniques
+T043,23MAT206,Optimization Techniques
+T017,23MAT206,Optimization Techniques
+T003,23CSE205,Digital Electronics
+T001,23CSE205,Digital Electronics
+T010,23CSE205,Digital Electronics
+T031,23CSE205,Digital Electronics
+T033,23CSE205,Digital Electronics
+T013,23CSE205,Digital Electronics
+T006,23CSE201,Procedural Programming using C
+T004,23CSE201,Procedural Programming using C
+T011,23CSE201,Procedural Programming using C
+T019,23CSE201,Procedural Programming using C
+T040,23CSE201,Procedural Programming using C
+T036,23CSE201,Procedural Programming using C
+T005,23CSE202,Database Management Systems
+T034,23CSE202,Database Management Systems
+T019,23CSE202,Database Management Systems
+T006,23CSE202,Database Management Systems
+T007,23CSE202,Database Management Systems
+T010,23CSE202,Database Management Systems
+T015,23CSE203,Data Structures and Algorithms
+T018,23CSE203,Data Structures and Algorithms
+T003,23CSE203,Data Structures and Algorithms
+T024,23CSE203,Data Structures and Algorithms
+T009,23CSE203,Data Structures and Algorithms
+T014,23CSE203,Data Structures and Algorithms
+T031,23CSE285,Digital Electronics Laboratory
+T026,23CSE285,Digital Electronics Laboratory
+T002,23CSE285,Digital Electronics Laboratory
+T027,23CSE285,Digital Electronics Laboratory
+T039,23CSE285,Digital Electronics Laboratory
+T005,23CSE285,Digital Electronics Laboratory
+T032,23LSE201,Life Skills for Engineers I
+T040,23LSE201,Life Skills for Engineers I
+T028,23LSE201,Life Skills for Engineers I
+T037,23LSE201,Life Skills for Engineers I
+T017,23LSE201,Life Skills for Engineers I
+T025,23LSE201,Life Skills for Engineers I
+T004,AVP1,Amrita Value Programme I
+T039,AVP1,Amrita Value Programme I
+T040,AVP1,Amrita Value Programme I
+T031,AVP1,Amrita Value Programme I
+T013,AVP1,Amrita Value Programme I
+T028,AVP1,Amrita Value Programme I
+T042,23CSE301,Machine Learning
+T037,23CSE301,Machine Learning
+T012,23CSE301,Machine Learning
+T007,23CSE301,Machine Learning
+T030,23CSE301,Machine Learning
+T003,23CSE301,Machine Learning
+T004,23CSE302,Computer Networks
+T002,23CSE302,Computer Networks
+T008,23CSE302,Computer Networks
+T032,23CSE302,Computer Networks
+T038,23CSE302,Computer Networks
+T010,23CSE302,Computer Networks
+T016,23CSE303,Theory of Computation
+T036,23CSE303,Theory of Computation
+T021,23CSE303,Theory of Computation
+T008,23CSE303,Theory of Computation
+T041,23CSE303,Theory of Computation
+T014,23CSE303,Theory of Computation
+T016,23CSE304,Embedded Systems
+T040,23CSE304,Embedded Systems
+T012,23CSE304,Embedded Systems
+T011,23CSE304,Embedded Systems
+T026,23CSE304,Embedded Systems
+T037,23CSE304,Embedded Systems
+T025,PE1,Professional Elective I
+T013,PE1,Professional Elective I
+T020,PE1,Professional Elective I
+T043,PE1,Professional Elective I
+T012,PE1,Professional Elective I
+T036,PE1,Professional Elective I
+T019,PE2,Professional Elective II
+T016,PE2,Professional Elective II
+T029,PE2,Professional Elective II
+T007,PE2,Professional Elective II
+T024,PE2,Professional Elective II
+T018,PE2,Professional Elective II
+T022,23LSE301,Life Skills for Engineers III
+T026,23LSE301,Life Skills for Engineers III
+T009,23LSE301,Life Skills for Engineers III
+T033,23LSE301,Life Skills for Engineers III
+T042,23LSE301,Life Skills for Engineers III
+T006,23LSE301,Life Skills for Engineers III
+T043,23ENV300,Environmental Science
+T039,23ENV300,Environmental Science
+T021,23ENV300,Environmental Science
+T023,23ENV300,Environmental Science
+T009,23ENV300,Environmental Science
+T034,23ENV300,Environmental Science
+T024,PE4,Professional Elective IV
+T015,PE4,Professional Elective IV
+T037,PE4,Professional Elective IV
+T033,PE4,Professional Elective IV
+T011,PE4,Professional Elective IV
+T035,PE4,Professional Elective IV
+T005,PE5,Professional Elective V
+T032,PE5,Professional Elective V
+T023,PE5,Professional Elective V
+T042,PE5,Professional Elective V
+T035,PE5,Professional Elective V
+T029,PE5,Professional Elective V
+T029,PE6,Professional Elective VI
+T002,PE6,Professional Elective VI
+T034,PE6,Professional Elective VI
+T017,PE6,Professional Elective VI
+T023,PE6,Professional Elective VI
+T039,PE6,Professional Elective VI
+T013,FREE2,Free Elective II
+T024,FREE2,Free Elective II
+T018,FREE2,Free Elective II
+T043,FREE2,Free Elective II
+T027,FREE2,Free Elective II
+T030,FREE2,Free Elective II
+T009,23CSE401,Fundamentals of Artificial Intelligence
+T023,23CSE401,Fundamentals of Artificial Intelligence
+T038,23CSE401,Fundamentals of Artificial Intelligence
+T022,23CSE401,Fundamentals of Artificial Intelligence
+T027,23CSE401,Fundamentals of Artificial Intelligence
+T043,23CSE401,Fundamentals of Artificial Intelligence
+T038,23CSE498,Project Phase II
+T027,23CSE498,Project Phase II
+T022,23CSE498,Project Phase II
+T011,23CSE498,Project Phase II
+T030,23CSE498,Project Phase II
+T035,23CSE498,Project Phase II
+T021,23LAW300,Indian Constitution
+T035,23LAW300,Indian Constitution
+T022,23LAW300,Indian Constitution
+T038,23LAW300,Indian Constitution
+T030,23LAW300,Indian Constitution
+T020,23LAW300,Indian Constitution

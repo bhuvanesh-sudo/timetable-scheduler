@@ -30,3 +30,7 @@ frontend/.env
 # Runtime data (backups & audit DB)
 backend/backups/
 backend/audit_db.sqlite3
+.pytest_cache/
+*.log
+test_output*.txt
+FINAL_TEST_OUTPUT.txt

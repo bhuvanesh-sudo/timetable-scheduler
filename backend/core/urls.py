@@ -18,7 +18,8 @@ from .views import (
 )
 
 from .system_views import (
-    list_backups, create_backup, restore_backup, delete_backup, system_info
+    list_backups, create_backup, restore_backup, delete_backup, system_info,
+    reset_semester
 )
 
 # Create a router and register our viewsets
@@ -45,5 +46,6 @@ urlpatterns = [
     path('system/backups/create/', create_backup, name='create-backup'),
     path('system/backups/<str:filename>/', delete_backup, name='delete-backup'),
     path('system/restore/<str:filename>/', restore_backup, name='restore-backup'),
+    path('system/reset-semester/', reset_semester, name='reset-semester'),
 ]
 

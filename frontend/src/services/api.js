@@ -169,6 +169,7 @@ export const systemAPI = {
   createBackup: (label = '') => api.post('/system/backups/create/', { label }),
   restoreBackup: (filename) => api.post(`/system/restore/${filename}/`),
   deleteBackup: (filename) => api.delete(`/system/backups/${filename}/`),
+  resetSemester: (data) => api.post('/system/reset-semester/', data),
 };
 
 export const auditLogAPI = {
