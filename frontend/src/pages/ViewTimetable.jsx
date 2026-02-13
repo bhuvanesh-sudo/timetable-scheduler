@@ -7,6 +7,8 @@
 import { useState, useEffect } from 'react';
 import { scheduleAPI, schedulerAPI, sectionAPI, teacherAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 function ViewTimetable() {
     const { user } = useAuth();
@@ -104,6 +106,68 @@ function ViewTimetable() {
         } finally {
             setVerifying(false);
         }
+    };
+
+    const handleDownloadPDF = () => {
+        if (!timetable) return;
+
+        const doc = new jsPDF();
+
+        // Title
+        doc.setFontSize(18);
+        const title = user?.role === 'FACULTY'
+            ? `Timetable - ${user.first_name} ${user.last_name}`
+            : `Timetable - ${schedules.find(s => s.schedule_id === selectedSchedule)?.name || 'Schedule'}`;
+        doc.text(title, 14, 22);
+
+        // Subtitle (Section/Teacher info)
+        doc.setFontSize(11);
+        let subtitle = '';
+        if (selectedSection) subtitle += `Section: ${selectedSection}  `;
+        if (selectedTeacher && user?.role !== 'FACULTY') {
+            const teacherName = teachers.find(t => t.teacher_id === selectedTeacher)?.teacher_name || selectedTeacher;
+            subtitle += `Teacher: ${teacherName}`;
+        }
+        if (subtitle) doc.text(subtitle, 14, 30);
+
+        // Prepare table data
+        const tableColumn = ["Time", ...days];
+        const tableRows = [];
+
+        slots.forEach(slot => {
+            const rowData = [`Slot ${slot}`];
+            days.forEach(day => {
+                const classes = timetable[day]?.[slot] || [];
+                const cellContent = classes.map(c =>
+                    `${c.course_code}\n${c.room} (${c.section})` + (c.is_lab_session ? ' [LAB]' : '')
+                ).join('\n\n');
+                rowData.push(cellContent);
+            });
+            tableRows.push(rowData);
+        });
+
+        autoTable(doc, {
+            head: [tableColumn],
+            body: tableRows,
+            startY: subtitle ? 35 : 25,
+            theme: 'grid',
+            styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
+            headStyles: { fillColor: [66, 66, 66], textColor: 255 },
+            columnStyles: {
+                0: { cellWidth: 20, fontStyle: 'bold' } // Time column
+            },
+            didParseCell: function (data) {
+                // simple styling for cells with data
+                if (data.section === 'body' && data.column.index > 0 && data.cell.raw) {
+                    // check if it's a lab (contains [LAB])
+                    if (data.cell.raw.toString().includes('[LAB]')) {
+                        data.cell.styles.fillColor = [240, 248, 255]; // Light blue for labs
+                    }
+                }
+            }
+        });
+
+        doc.save('timetable.pdf');
     };
 
     useEffect(() => {
@@ -227,7 +291,14 @@ function ViewTimetable() {
                 <div className="card">
                     <div className="card-header">
                         <h2 className="card-title">Weekly Schedule</h2>
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <button
+                                className="btn btn-primary"
+                                onClick={handleDownloadPDF}
+                                style={{ fontSize: '0.875rem', padding: '0.25rem 0.5rem' }}
+                            >
+                                Download PDF
+                            </button>
                             {user?.role === 'FACULTY' && (
                                 <span className="badge-pill badge-primary">Faculty View</span>
                             )}
