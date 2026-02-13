@@ -214,6 +214,18 @@ class Course(models.Model):
     is_elective = models.BooleanField(default=False)
     weekly_slots = models.IntegerField(validators=[MinValueValidator(0)])
     
+    # New fields for Elective Bucketing
+    is_schedulable = models.BooleanField(
+        default=True,
+        help_text="True for Core courses and Generic Buckets (PE/FREE). False for specific elective topics."
+    )
+    elective_group = models.CharField(
+        max_length=50, 
+        blank=True, 
+        null=True,
+        help_text="Links child courses to parent buckets (e.g., 'PE_SEM5')"
+    )
+    
     class Meta:
         db_table = 'courses'
         ordering = ['year', 'semester', 'course_id']
@@ -332,6 +344,23 @@ class TeacherCourseMapping(models.Model):
         return f"{self.teacher.teacher_id} -> {self.course.course_id}"
 
 
+class ElectiveAllocation(models.Model):
+    """
+    Maps specific elective topics (Child Courses) to teachers and section groups.
+    Derived from elective_allocation.csv.
+    """
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='allocations')
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
+    section_group = models.CharField(max_length=10, help_text="A, B, or 'Global'")
+
+    class Meta:
+        db_table = 'elective_allocations'
+        unique_together = ['course', 'section_group']
+
+    def __str__(self):
+        return f"{self.course.course_id} - {self.teacher.teacher_name} ({self.section_group})"
+
+
 class Schedule(models.Model):
     """
     Represents a generated timetable schedule.
@@ -390,8 +419,9 @@ class ScheduleEntry(models.Model):
     schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE, related_name='entries')
     section = models.ForeignKey(Section, on_delete=models.CASCADE)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
-    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
-    room = models.ForeignKey(Room, on_delete=models.CASCADE)
+    # Nullable for "Bucket" placeholders in Master Schedule
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, null=True, blank=True)
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, null=True, blank=True)
     timeslot = models.ForeignKey(TimeSlot, on_delete=models.CASCADE)
     is_lab_session = models.BooleanField(default=False)
     
@@ -405,6 +435,25 @@ class ScheduleEntry(models.Model):
     
     def __str__(self):
         return f"{self.section.class_id} - {self.course.course_id} @ {self.timeslot.slot_id}"
+
+
+class ElectiveAssignment(models.Model):
+    """
+    Stores the expanded assignments for each elective bucket slot.
+    """
+    schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE, related_name='elective_assignments')
+    parent_entry = models.ForeignKey(ScheduleEntry, on_delete=models.CASCADE, related_name='expansions')
+    section = models.ForeignKey(Section, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
+    room = models.ForeignKey(Room, on_delete=models.CASCADE)
+    timeslot = models.ForeignKey(TimeSlot, on_delete=models.CASCADE)
+
+    class Meta:
+        db_table = 'elective_assignments'
+
+    def __str__(self):
+        return f"Expansion: {self.course.course_name} for {self.section.class_id}"
 
 
 class Constraint(models.Model):

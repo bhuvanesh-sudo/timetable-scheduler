@@ -1,11 +1,5 @@
-/**
- * View Timetable Page
- * 
- * Author: Frontend Team (Bhuvanesh, Akshitha)
- */
-
 import { useState, useEffect } from 'react';
-import { scheduleAPI, schedulerAPI, sectionAPI, teacherAPI } from '../services/api';
+import { scheduleAPI, schedulerAPI, sectionAPI, teacherAPI, electiveAllocationAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 function ViewTimetable() {
@@ -13,6 +7,7 @@ function ViewTimetable() {
     const [schedules, setSchedules] = useState([]);
     const [sections, setSections] = useState([]);
     const [teachers, setTeachers] = useState([]);
+    const [allocations, setAllocations] = useState([]);
 
     const [selectedSchedule, setSelectedSchedule] = useState('');
     const [selectedSection, setSelectedSection] = useState('');
@@ -22,7 +17,9 @@ function ViewTimetable() {
     const [loading, setLoading] = useState(false);
     const [verificationResult, setVerificationResult] = useState(null);
     const [showVerificationModal, setShowVerificationModal] = useState(false);
+    const [showAllocationsModal, setShowAllocationsModal] = useState(false);
     const [verifying, setVerifying] = useState(false);
+    const [loadingAllocations, setLoadingAllocations] = useState(false);
 
     const days = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
     const slots = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -90,6 +87,25 @@ function ViewTimetable() {
         }
     };
 
+    const loadAllocations = async () => {
+        if (!selectedSchedule) {
+            alert("Please select a schedule first.");
+            return;
+        }
+        setLoadingAllocations(true);
+        try {
+            // Use the new API for scheduled assignments
+            const response = await schedulerAPI.getElectiveAssignments(selectedSchedule);
+            setAllocations(response.data || []);
+            setShowAllocationsModal(true);
+        } catch (error) {
+            console.error('Error loading assignments:', error);
+            alert('Failed to load elective assignments');
+        } finally {
+            setLoadingAllocations(false);
+        }
+    };
+
     const handleVerifySchedule = async () => {
         if (!selectedSchedule) return;
 
@@ -143,7 +159,7 @@ function ViewTimetable() {
                             ))}
                         </select>
                         {(selectedSchedule && (user?.role === 'ADMIN' || user?.role === 'HOD')) && (
-                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
                                 <button
                                     className="btn btn-success"
                                     onClick={handleVerifySchedule}
@@ -151,6 +167,14 @@ function ViewTimetable() {
                                     style={{ flex: 1 }}
                                 >
                                     {verifying ? 'Verifying...' : 'Verify Schedule'}
+                                </button>
+                                <button
+                                    className="btn btn-info"
+                                    onClick={loadAllocations}
+                                    disabled={loadingAllocations}
+                                    style={{ flex: 1 }}
+                                >
+                                    {loadingAllocations ? 'Loading...' : 'View scheduled Electives'}
                                 </button>
                                 <button
                                     className="btn btn-danger"
@@ -289,6 +313,7 @@ function ViewTimetable() {
                     Please select a schedule to view the timetable.
                 </div>
             )}
+
             {/* Verification Modal */}
             {showVerificationModal && verificationResult && (
                 <div style={{
@@ -360,6 +385,70 @@ function ViewTimetable() {
                         >
                             Close
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Elective Allocations Modal */}
+            {showAllocationsModal && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0, 0, 0, 0.5)',
+                    backdropFilter: 'blur(4px)',
+                    WebkitBackdropFilter: 'blur(4px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    zIndex: 1000,
+                    animation: 'fadeIn 0.3s ease-out',
+                }}>
+                    <div style={{
+                        background: 'var(--card-bg)',
+                        border: '1px solid var(--card-border)',
+                        borderRadius: 'var(--radius-lg)',
+                        boxShadow: 'var(--shadow-xl)',
+                        padding: 'var(--spacing-lg)',
+                        maxWidth: '900px',
+                        width: '95%',
+                        maxHeight: '85vh',
+                        overflow: 'auto',
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Scheduled Elective Classes</h3>
+                            <button onClick={() => setShowAllocationsModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>&times;</button>
+                        </div>
+
+                        <div style={{ overflowX: 'auto' }}>
+                            <table className="data-table" style={{ width: '100%', fontSize: '0.9rem' }}>
+                                <thead>
+                                    <tr>
+                                        <th>Course</th>
+                                        <th>Teacher</th>
+                                        <th>Section/Group</th>
+                                        <th>Room</th>
+                                        <th>Day & Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {allocations.length > 0 ? (
+                                        allocations.map((alloc, idx) => (
+                                            <tr key={idx}>
+                                                <td>
+                                                    <div style={{ fontWeight: 600 }}>{alloc.course_code}</div>
+                                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{alloc.course_name}</div>
+                                                </td>
+                                                <td>{alloc.teacher_name}</td>
+                                                <td>{alloc.section}</td>
+                                                <td>{alloc.room}</td>
+                                                <td>{alloc.day} Slot {alloc.slot} <br /> <span style={{ fontSize: '0.8em' }}>({alloc.time})</span></td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="5" style={{ textAlign: 'center', padding: '2rem' }}>No scheduled elective assignments found for this schedule.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             )}

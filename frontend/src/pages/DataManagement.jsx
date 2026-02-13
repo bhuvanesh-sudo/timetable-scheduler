@@ -10,7 +10,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { teacherAPI, courseAPI, roomAPI, sectionAPI, teacherCourseMappingAPI, timeslotAPI } from '../services/api';
+import { teacherAPI, courseAPI, roomAPI, sectionAPI, teacherCourseMappingAPI, timeslotAPI, electiveAllocationAPI, systemAPI } from '../services/api';
 
 function DataManagement() {
     const [activeTab, setActiveTab] = useState('teachers');
@@ -20,6 +20,7 @@ function DataManagement() {
     const [sections, setSections] = useState([]);
     const [mappings, setMappings] = useState([]);
     const [timeslots, setTimeslots] = useState([]);
+    const [electiveAllocations, setElectiveAllocations] = useState([]);
     const [loading, setLoading] = useState(true);
 
     // Selection state for bulk delete
@@ -45,13 +46,14 @@ function DataManagement() {
 
     const loadData = async () => {
         try {
-            const [teachersRes, coursesRes, roomsRes, sectionsRes, mappingsRes, timeslotsRes] = await Promise.all([
+            const [teachersRes, coursesRes, roomsRes, sectionsRes, mappingsRes, timeslotsRes, electiveAllocationsRes] = await Promise.all([
                 teacherAPI.getAll(),
                 courseAPI.getAll(),
                 roomAPI.getAll(),
                 sectionAPI.getAll(),
                 teacherCourseMappingAPI.getAll(),
                 timeslotAPI.getAll(),
+                electiveAllocationAPI.getAll(),
             ]);
 
             setTeachers(teachersRes.data.results || teachersRes.data || []);
@@ -60,6 +62,7 @@ function DataManagement() {
             setSections(sectionsRes.data.results || sectionsRes.data || []);
             setMappings(mappingsRes.data.results || mappingsRes.data || []);
             setTimeslots(timeslotsRes.data.results || timeslotsRes.data || []);
+            setElectiveAllocations(electiveAllocationsRes.data.results || electiveAllocationsRes.data || []);
         } catch (error) {
             console.error('Error loading data:', error);
         } finally {
@@ -147,6 +150,28 @@ function DataManagement() {
         }
     };
 
+    const handleClearAllData = async () => {
+        if (!window.confirm('WARNING: This will delete ALL data (Teachers, Courses, Rooms, Sections, etc.) from the system. This action cannot be undone. Are you sure?')) {
+            return;
+        }
+
+        if (!window.confirm('Are you ABSOLUTELY sure? All schedules and entries will also be deleted.')) {
+            return;
+        }
+
+        try {
+            setLoading(true);
+            await systemAPI.clearAllData();
+            await loadData();
+            alert('All data cleared successfully');
+        } catch (error) {
+            console.error('Error clearing data:', error);
+            alert('Failed to clear data: ' + (error.response?.data?.error || error.message));
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Add new record handler
     const handleAddNew = async () => {
         try {
@@ -168,10 +193,12 @@ function DataManagement() {
         switch (activeTab) {
             case 'teachers': return teachers;
             case 'courses': return courses;
+            case 'elective-courses': return courses.filter(c => c.is_elective);
             case 'rooms': return rooms;
             case 'sections': return sections;
             case 'mappings': return mappings;
             case 'timeslots': return timeslots;
+            case 'elective-allocations': return electiveAllocations;
             default: return [];
         }
     };
@@ -180,10 +207,12 @@ function DataManagement() {
         switch (activeTab) {
             case 'teachers': return teacherAPI;
             case 'courses': return courseAPI;
+            case 'elective-courses': return courseAPI;
             case 'rooms': return roomAPI;
             case 'sections': return sectionAPI;
             case 'mappings': return teacherCourseMappingAPI;
             case 'timeslots': return timeslotAPI;
+            case 'elective-allocations': return electiveAllocationAPI;
             default: return teacherAPI;
         }
     };
@@ -193,10 +222,12 @@ function DataManagement() {
         switch (activeTab) {
             case 'teachers': return item.teacher_id;
             case 'courses': return item.course_id;
+            case 'elective-courses': return item.course_id;
             case 'rooms': return item.room_id;
             case 'sections': return item.class_id;
             case 'mappings': return item.id;
             case 'timeslots': return item.slot_id;
+            case 'elective-allocations': return item.id;
             default: return item.id;
         }
     };
@@ -206,7 +237,7 @@ function DataManagement() {
             case 'teachers':
                 return { teacher_id: '', teacher_name: '', email: '', department: '', max_hours_per_week: 20 };
             case 'courses':
-                return { course_id: '', course_name: '', year: 1, semester: 1, credits: 3, weekly_slots: 3, lectures: 3, practicals: 0, is_lab: false, is_elective: false };
+                return { course_id: '', course_name: '', year: 1, semester: 'odd', lectures: 3, theory: 0, practicals: 0, credits: 3, is_lab: false, is_elective: false, weekly_slots: 3, elective_group: 'NA', is_schedulable: true };
             case 'rooms':
                 return { room_id: '', block: '', floor: 1, room_type: 'CLASSROOM' };
             case 'sections':
@@ -215,6 +246,10 @@ function DataManagement() {
                 return { teacher: '', course: '', preference_level: 3 };
             case 'timeslots':
                 return { slot_id: '', day: 'MON', slot_number: 1, start_time: '09:00', end_time: '10:00' };
+            case 'elective-courses':
+                return { course_id: '', course_name: '', year: 1, semester: 'odd', lectures: 3, theory: 0, practicals: 0, credits: 3, is_lab: false, is_elective: true, weekly_slots: 3, elective_group: '', is_schedulable: true };
+            case 'elective-allocations':
+                return { course: '', section_group: '', teacher: '' };
             default:
                 return {};
         }
@@ -235,6 +270,10 @@ function DataManagement() {
                 return ['teacher_id', 'course_id']; // course_name is optional/ignored, preference_level optional
             case 'timeslots':
                 return ['slot_id', 'day', 'slot_number', 'start_time', 'end_time'];
+            case 'elective-courses':
+                return ['course_id', 'course_name', 'year', 'semester', 'lectures', 'theory', 'practicals', 'credits', 'is_lab', 'is_elective', 'weekly_slots', 'elective_group', 'is_schedulable'];
+            case 'elective-allocations':
+                return ['course_id', 'section_group', 'teacher_id'];
             default:
                 return [];
         }
@@ -338,7 +377,7 @@ function DataManagement() {
 
                     if (activeTab === 'teachers') {
                         processedRow.max_hours_per_week = parseInt(processedRow.max_hours_per_week);
-                    } else if (activeTab === 'courses') {
+                    } else if (activeTab === 'courses' || activeTab === 'elective-courses') {
                         processedRow.year = parseInt(processedRow.year);
                         // processedRow.semester is already a string ('odd'/'even'), no parseInt needed
                         processedRow.credits = parseInt(processedRow.credits);
@@ -347,7 +386,8 @@ function DataManagement() {
                         processedRow.theory = parseInt(processedRow.theory);
                         processedRow.practicals = parseInt(processedRow.practicals);
                         processedRow.is_lab = processedRow.is_lab === 'true' || processedRow.is_lab === '1';
-                        processedRow.is_elective = processedRow.is_elective === 'true' || processedRow.is_elective === '1';
+                        processedRow.is_elective = processedRow.is_elective === 'true' || processedRow.is_elective === '1' || activeTab === 'elective-courses';
+                        processedRow.is_schedulable = processedRow.is_schedulable === 'true' || processedRow.is_schedulable === '1' || processedRow.is_schedulable === undefined;
                     } else if (activeTab === 'rooms') {
                         processedRow.floor = parseInt(processedRow.floor);
                     } else if (activeTab === 'sections') {
@@ -358,6 +398,9 @@ function DataManagement() {
                         processedRow.preference_level = processedRow.preference_level ? parseInt(processedRow.preference_level) : 3;
                     } else if (activeTab === 'timeslots') {
                         processedRow.slot_number = parseInt(processedRow.slot_number);
+                    } else if (activeTab === 'elective-allocations') {
+                        processedRow.course = processedRow.course_id;
+                        processedRow.teacher = processedRow.teacher_id;
                     }
 
                     await api.create(processedRow);
@@ -473,6 +516,18 @@ function DataManagement() {
                     >
                         TimeSlots ({timeslots.length})
                     </button>
+                    <button
+                        className={`btn ${activeTab === 'elective-courses' ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => { setActiveTab('elective-courses'); setSelectedItems(new Set()); }}
+                    >
+                        Elective Courses ({courses.filter(c => c.is_elective).length})
+                    </button>
+                    <button
+                        className={`btn ${activeTab === 'elective-allocations' ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => { setActiveTab('elective-allocations'); setSelectedItems(new Set()); }}
+                    >
+                        Elective Allocation ({electiveAllocations.length})
+                    </button>
                 </div>
 
                 {/* Action Buttons */}
@@ -488,6 +543,13 @@ function DataManagement() {
                         onClick={() => setShowImportModal(true)}
                     >
                         Import CSV
+                    </button>
+                    <button
+                        className="btn btn-danger"
+                        onClick={handleClearAllData}
+                        style={{ marginLeft: 'auto' }}
+                    >
+                        Clear All Data
                     </button>
                     {selectedItems.size > 0 && (
                         <button
@@ -541,8 +603,8 @@ function DataManagement() {
                     </div>
                 )}
 
-                {/* Courses Table */}
-                {activeTab === 'courses' && (
+                {/* Courses Table (Regular and Elective) */}
+                {(activeTab === 'courses' || activeTab === 'elective-courses') && (
                     <div className="table-container">
                         <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
@@ -550,26 +612,32 @@ function DataManagement() {
                                     <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>
                                         <input type="checkbox" checked={selectedItems.size === courses.length && courses.length > 0} onChange={toggleSelectAll} />
                                     </th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Course ID</th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Course Name</th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Year</th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Semester</th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Credits</th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Weekly Slots</th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>ID</th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Name</th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Yr/Sem</th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>L-T-P-C</th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Slots</th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Lab?</th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Elective?</th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Group</th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Schedulable?</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {courses.map((course) => (
+                                {courses.filter(c => activeTab === 'courses' ? true : c.is_elective).map((course) => (
                                     <tr key={course.course_id} style={{ borderBottom: '1px solid #eee' }}>
                                         <td style={{ padding: '12px' }}>
                                             <input type="checkbox" checked={selectedItems.has(course.course_id)} onChange={() => toggleSelection(course.course_id)} />
                                         </td>
                                         <td style={{ padding: '12px' }}>{course.course_id}</td>
                                         <td style={{ padding: '12px' }}>{renderEditableCell(course, 'course_name', course.course_name)}</td>
-                                        <td style={{ padding: '12px' }}>{renderEditableCell(course, 'year', course.year)}</td>
-                                        <td style={{ padding: '12px' }}>{renderEditableCell(course, 'semester', course.semester)}</td>
-                                        <td style={{ padding: '12px' }}>{renderEditableCell(course, 'credits', course.credits)}</td>
+                                        <td style={{ padding: '12px' }}>{course.year}/{course.semester}</td>
+                                        <td style={{ padding: '12px' }}>{course.lectures}-{course.theory}-{course.practicals}-{course.credits}</td>
                                         <td style={{ padding: '12px' }}>{renderEditableCell(course, 'weekly_slots', course.weekly_slots)}</td>
+                                        <td style={{ padding: '12px' }}>{course.is_lab ? '✅' : '❌'}</td>
+                                        <td style={{ padding: '12px' }}>{course.is_elective ? '✅' : '❌'}</td>
+                                        <td style={{ padding: '12px' }}>{renderEditableCell(course, 'elective_group', course.elective_group || '-')}</td>
+                                        <td style={{ padding: '12px' }}>{course.is_schedulable ? '✅' : '❌'}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -706,6 +774,38 @@ function DataManagement() {
                         </table>
                     </div>
                 )}
+
+                {/* Elective Allocation Table */}
+                {activeTab === 'elective-allocations' && (
+                    <div className="table-container">
+                        <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead>
+                                <tr style={{ background: '#f8f9fa' }}>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>
+                                        <input type="checkbox" checked={selectedItems.size === electiveAllocations.length && electiveAllocations.length > 0} onChange={toggleSelectAll} />
+                                    </th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>ID</th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Course</th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Section Group</th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Teacher</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {electiveAllocations.map((alloc) => (
+                                    <tr key={alloc.id} style={{ borderBottom: '1px solid #eee' }}>
+                                        <td style={{ padding: '12px' }}>
+                                            <input type="checkbox" checked={selectedItems.has(alloc.id)} onChange={() => toggleSelection(alloc.id)} />
+                                        </td>
+                                        <td style={{ padding: '12px' }}>{alloc.id}</td>
+                                        <td style={{ padding: '12px' }}>{alloc.course_name} ({alloc.course})</td>
+                                        <td style={{ padding: '12px' }}>{renderEditableCell(alloc, 'section_group', alloc.section_group)}</td>
+                                        <td style={{ padding: '12px' }}>{alloc.teacher_name} ({alloc.teacher})</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
 
             {/* Add New Record Modal */}
@@ -740,7 +840,7 @@ function DataManagement() {
                             </div>
                         )}
 
-                        {activeTab === 'courses' && (
+                        {(activeTab === 'courses' || activeTab === 'elective-courses') && (
                             <div>
                                 <div style={{ marginBottom: '1rem' }}>
                                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Course ID:</label>
@@ -757,7 +857,24 @@ function DataManagement() {
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Semester:</label>
-                                        <input type="number" value={newRecord.semester || 1} onChange={(e) => setNewRecord({ ...newRecord, semester: parseInt(e.target.value) })} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }} />
+                                        <select value={newRecord.semester || 'odd'} onChange={(e) => setNewRecord({ ...newRecord, semester: e.target.value })} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}>
+                                            <option value="odd">Odd</option>
+                                            <option value="even">Even</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Lectures:</label>
+                                        <input type="number" value={newRecord.lectures || 3} onChange={(e) => setNewRecord({ ...newRecord, lectures: parseInt(e.target.value) })} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }} />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Theory:</label>
+                                        <input type="number" value={newRecord.theory || 0} onChange={(e) => setNewRecord({ ...newRecord, theory: parseInt(e.target.value) })} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }} />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Practicals:</label>
+                                        <input type="number" value={newRecord.practicals || 0} onChange={(e) => setNewRecord({ ...newRecord, practicals: parseInt(e.target.value) })} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }} />
                                     </div>
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
@@ -766,26 +883,26 @@ function DataManagement() {
                                         <input type="number" value={newRecord.credits || 3} onChange={(e) => setNewRecord({ ...newRecord, credits: parseInt(e.target.value) })} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }} />
                                     </div>
                                     <div>
-                                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Lectures:</label>
-                                        <input type="number" value={newRecord.lectures || 3} onChange={(e) => setNewRecord({ ...newRecord, lectures: parseInt(e.target.value) })} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }} />
+                                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Weekly Slots:</label>
+                                        <input type="number" value={newRecord.weekly_slots || 3} onChange={(e) => setNewRecord({ ...newRecord, weekly_slots: parseInt(e.target.value) })} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }} />
                                     </div>
                                     <div>
-                                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Practicals:</label>
-                                        <input type="number" value={newRecord.practicals || 0} onChange={(e) => setNewRecord({ ...newRecord, practicals: parseInt(e.target.value) })} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }} />
+                                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Elective Group:</label>
+                                        <input type="text" value={newRecord.elective_group || ''} onChange={(e) => setNewRecord({ ...newRecord, elective_group: e.target.value })} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }} />
                                     </div>
                                 </div>
-                                <div style={{ marginBottom: '1rem' }}>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Weekly Slots:</label>
-                                    <input type="number" value={newRecord.weekly_slots || 3} onChange={(e) => setNewRecord({ ...newRecord, weekly_slots: parseInt(e.target.value) })} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }} />
-                                </div>
                                 <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <input type="checkbox" checked={newRecord.is_lab || false} onChange={(e) => setNewRecord({ ...newRecord, is_lab: e.target.checked })} />
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                                        <input type="checkbox" checked={newRecord.is_lab || false} onChange={(e) => setNewRecord({ ...newRecord.is_lab, is_lab: e.target.checked })} />
                                         Is Lab
                                     </label>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <input type="checkbox" checked={newRecord.is_elective || false} onChange={(e) => setNewRecord({ ...newRecord, is_elective: e.target.checked })} />
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                                        <input type="checkbox" checked={newRecord.is_elective || activeTab === 'elective-courses'} onChange={(e) => setNewRecord({ ...newRecord, is_elective: e.target.checked })} />
                                         Is Elective
+                                    </label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                                        <input type="checkbox" checked={newRecord.is_schedulable !== false} onChange={(e) => setNewRecord({ ...newRecord, is_schedulable: e.target.checked })} />
+                                        Is Schedulable
                                     </label>
                                 </div>
                             </div>
@@ -859,7 +976,6 @@ function DataManagement() {
                                 </div>
                             </div>
                         )}
-
                         {activeTab === 'timeslots' && (
                             <div>
                                 <div style={{ marginBottom: '1rem' }}>
@@ -892,6 +1008,23 @@ function DataManagement() {
                                         <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>End Time:</label>
                                         <input type="time" value={newRecord.end_time || '10:00'} onChange={(e) => setNewRecord({ ...newRecord, end_time: e.target.value })} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }} />
                                     </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'elective-allocations' && (
+                            <div>
+                                <div style={{ marginBottom: '1rem' }}>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Course ID (Elective):</label>
+                                    <input type="text" value={newRecord.course || ''} onChange={(e) => setNewRecord({ ...newRecord, course: e.target.value })} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }} />
+                                </div>
+                                <div style={{ marginBottom: '1rem' }}>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Section Group (e.g., CSE3):</label>
+                                    <input type="text" value={newRecord.section_group || ''} onChange={(e) => setNewRecord({ ...newRecord, section_group: e.target.value })} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }} />
+                                </div>
+                                <div style={{ marginBottom: '1rem' }}>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Teacher ID:</label>
+                                    <input type="text" value={newRecord.teacher || ''} onChange={(e) => setNewRecord({ ...newRecord, teacher: e.target.value })} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }} />
                                 </div>
                             </div>
                         )}

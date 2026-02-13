@@ -11,7 +11,8 @@ Sprint: 1
 from rest_framework import serializers
 from .models import (
     Teacher, Course, Room, TimeSlot, Section,
-    TeacherCourseMapping, Schedule, ScheduleEntry, Constraint, ConflictLog, AuditLog, ChangeRequest
+    TeacherCourseMapping, Schedule, ScheduleEntry, Constraint, ConflictLog, AuditLog, ChangeRequest,
+    ElectiveAllocation, ElectiveAssignment
 )
 
 
@@ -156,6 +157,24 @@ class ScheduleSerializer(serializers.ModelSerializer):
         return obj.conflicts.filter(resolved=False).count()
 
 
+class ElectiveAssignmentSerializer(serializers.ModelSerializer):
+    """
+    Serializer for expanded elective assignments.
+    """
+    course_name = serializers.CharField(source='course.course_name', read_only=True)
+    course_code = serializers.CharField(source='course.course_id', read_only=True)
+    teacher_name = serializers.CharField(source='teacher.teacher_name', read_only=True)
+    room_name = serializers.CharField(source='room.room_id', read_only=True)
+    
+    class Meta:
+        model = ElectiveAssignment
+        fields = [
+            'id', 'course', 'course_name', 'course_code',
+            'teacher', 'teacher_name', 'room', 'room_name',
+            'timeslot'
+        ]
+
+
 class ScheduleEntrySerializer(serializers.ModelSerializer):
     """
     Serializer for ScheduleEntry model.
@@ -173,6 +192,8 @@ class ScheduleEntrySerializer(serializers.ModelSerializer):
     start_time = serializers.TimeField(source='timeslot.start_time', read_only=True)
     end_time = serializers.TimeField(source='timeslot.end_time', read_only=True)
     
+    expansions = ElectiveAssignmentSerializer(many=True, read_only=True)
+    
     class Meta:
         model = ScheduleEntry
         fields = [
@@ -181,7 +202,7 @@ class ScheduleEntrySerializer(serializers.ModelSerializer):
             'teacher', 'teacher_name',
             'room', 'room_name', 'room_type',
             'timeslot', 'day', 'slot_number', 'start_time', 'end_time',
-            'is_lab_session'
+            'is_lab_session', 'expansions'
         ]
 
 
@@ -223,6 +244,31 @@ class ScheduleDetailSerializer(serializers.ModelSerializer):
             'created_at', 'completed_at', 'quality_score',
             'entries', 'conflicts'
         ]
+
+
+class ElectiveAllocationSerializer(serializers.ModelSerializer):
+    """
+    Serializer for ElectiveAllocation model.
+    """
+    course_name = serializers.CharField(source='course.course_name', read_only=True)
+    teacher_name = serializers.CharField(source='teacher.teacher_name', read_only=True)
+    
+    class Meta:
+        model = ElectiveAllocation
+        fields = ['id', 'course', 'course_name', 'section_group', 'teacher', 'teacher_name']
+
+
+class ChangeRequestSerializer(serializers.ModelSerializer):
+    """
+    Serializer for ChangeRequest model.
+    """
+    requested_by_name = serializers.CharField(source='requested_by.username', read_only=True)
+    reviewed_by_name = serializers.CharField(source='reviewed_by.username', read_only=True)
+    
+    class Meta:
+        model = ChangeRequest
+        fields = '__all__'
+        read_only_fields = ['requested_by', 'requested_at', 'reviewed_by', 'reviewed_at', 'status']
 
 
 class TimetableViewSerializer(serializers.Serializer):

@@ -20,7 +20,8 @@ from django.utils import timezone
 from django.db import transaction
 from core.models import (
     Schedule, ScheduleEntry, Section, Course, Teacher, Room,
-    TimeSlot, TeacherCourseMapping, ConflictLog
+    TimeSlot, TeacherCourseMapping, ConflictLog,
+    ElectiveAllocation, ElectiveAssignment
 )
 from .constraints import ConstraintValidator, calculate_schedule_quality
 
@@ -46,358 +47,370 @@ class TimetableScheduler:
     
     def generate(self):
         """
-        Main entry point for schedule generation.
-        Generates schedules for ALL 4 years simultaneously to ensure
-        no teacher/room conflicts across years.
-        
-        Returns:
-            tuple: (success, message)
+        Main entry point for "Bucket & Expand" schedule generation.
         """
         try:
-            # Update schedule status
             self.schedule.status = 'GENERATING'
             self.schedule.save()
             
-            # Get all sections (sections exist across both odd and even semesters)
-            # The semester is determined by which courses are available, not the section itself
             sections = Section.objects.all().order_by('year', 'class_id')
-            
-            if not sections.exists():
-                return False, f"No sections found for semester {self.schedule.semester}"
-            
-            # Get all available timeslots
             timeslots = list(TimeSlot.objects.all().order_by('day', 'slot_number'))
             
-            if not timeslots:
-                return False, "No timeslots available"
+            if not sections.exists() or not timeslots:
+                return False, "Sections or Timeslots missing"
             
-            # Count sections by year for reporting
-            year_counts = {}
-            for section in sections:
-                year_counts[section.year] = year_counts.get(section.year, 0) + 1
-            
-            # PRE-ALLOCATE TEACHERS: Assign teachers to section-course pairs
+            # PRE-PROCESSING: Get schedulable items (Core + Buckets)
+            self.schedulable_courses = Course.objects.filter(
+                semester=self.schedule.semester,
+                is_schedulable=True
+            ).order_by('year', 'course_id')
+
+            # PRE-ALLOCATE TEACHERS for Core Courses
             self._preallocate_teachers(sections)
             
-            # PHASE 1: LABS - Schedule Labs for ALL Sections First (Hard Constraint)
-            # This ensures continuous blocks can be found before theory slots fragment the schedule
-            # Shuffle sections to ensure fairness in resource contention
+            # STAGE 1: LAB BLOCKS (Core only)
             sections_list = list(sections)
             random.shuffle(sections_list)
-            
             for section in sections_list:
                 self._schedule_section_labs(section, timeslots)
 
-            # PHASE 2: THEORY - Schedule Theory for ALL Sections
-            # Reshuffle for theory phase
+            # STAGE 2: THEORY & BUCKETS
+            # (Buckets are treated like theory courses without teachers/rooms initially)
             random.shuffle(sections_list)
-            
             for section in sections_list:
-                self._schedule_section_theory(section, timeslots)
+                self._schedule_section_theory_and_buckets(section, timeslots)
+
+            # STAGE 3: ELECTIVE EXPANSION
+            self._expand_electives()
             
-            # Calculate quality score
+            # Finalize
             quality = calculate_schedule_quality(self.schedule)
             self.schedule.quality_score = quality
             self.schedule.status = 'COMPLETED'
             self.schedule.completed_at = timezone.now()
             self.schedule.save()
             
-            # Build success message with year breakdown
-            years_scheduled = ', '.join([f"Year {y}: {count} sections" for y, count in sorted(year_counts.items())])
-            return True, f"Schedule generated for all years ({years_scheduled}) with quality score: {quality:.2f}"
+            return True, f"Schedule generated successfully with quality score: {quality:.2f}"
         
         except Exception as e:
             self.schedule.status = 'FAILED'
             self.schedule.save()
-            return False, f"Error during scheduling: {str(e)}"
-    
-    def _preallocate_teachers(self, sections):
+            import traceback
+            return False, f"Error during scheduling: {str(e)}\n{traceback.format_exc()}"
+
+    def _expand_electives(self):
         """
-        Pre-allocate teachers with capacity checking (Smart 4+2 Rule).
+        Stage 3: Expand generic buckets into specific topics/teachers.
+        Groups sections by (Timeslot, ElectiveGroup) to share topics/rooms.
         """
         from collections import defaultdict
         
-        # Track estimated load (hours)
-        teacher_load = defaultdict(int) 
-        # Note: Ideally we should seed this with existing load if generating partially, 
-        # but generation is fresh for this schedule.
+        # 1. Group all bucket entries by (Timeslot, ElectiveGroup)
+        buckets_at_time = defaultdict(list)
+        bucket_entries = ScheduleEntry.objects.filter(
+            schedule=self.schedule,
+            course__is_elective=True,
+            course__is_schedulable=True
+        ).select_related('course', 'timeslot', 'section')
         
-        # Group sections by year
-        sections_by_year = defaultdict(list)
-        for section in sections:
-            sections_by_year[section.year].append(section)
+        for entry in bucket_entries:
+            key = (entry.timeslot.slot_id, entry.course.elective_group)
+            buckets_at_time[key].append(entry)
             
-        # Process each year
-        for year, year_sections in sections_by_year.items():
-            # Get courses for this year/semester
-            courses = Course.objects.filter(
-                year=year,
-                semester=self.schedule.semester,
-                is_elective=False
-            )
+        # 2. For each unique bucket-time combination, expand topics
+        for (slot_id, group_id), entries in buckets_at_time.items():
+            if not group_id: continue
             
-            for course in courses:
-                slots_per_section = course.weekly_slots
-                
-                # Get mapped teachers
-                mappings = list(TeacherCourseMapping.objects.filter(
-                    course=course
-                ).select_related('teacher').order_by('-preference_level'))
-                
-                # Get distinct teachers
-                distinct_teachers = []
-                seen_ids = set()
-                for m in mappings:
-                    if m.teacher.teacher_id not in seen_ids:
-                        distinct_teachers.append(m.teacher)
-                        seen_ids.add(m.teacher.teacher_id)
-                
-                if not distinct_teachers:
-                    # Fallback Strategy: Find any teacher in the same department?
-                    # Since Course doesn't have dept, we might infer or just pick ANY available matching dept
-                    # For now, let's try to find teachers who teach SIMILAR courses?
-                    # Simplest: Find ANY teacher with capacity (Global Fallback)
-                    # To be safe, maybe restricted to department if we can guess it.
-                    # Given dataset shows mostly "CSE", we'll query all.
-                    distinct_teachers = list(Teacher.objects.all())
-                    
-                    # Logic continues...
-                
-                # Filter/Sort by available capacity
-                # We want teachers who have room for at least 1 section (slots_per_section)
-                capable_teachers = []
-                overloaded_fallback = [] # Teachers who are full but might need to be used
-                
-                for t in distinct_teachers:
-                    current = teacher_load[t.teacher_id]
-                    if current + slots_per_section <= t.max_hours_per_week:
-                        capable_teachers.append(t)
-                    else:
-                        overloaded_fallback.append(t)
-                
-                # If mapped capable teachers are effectively zero (e.g. all mapped are full)
-                # AND we started with mappings (not global), we should Expand Search to Global
-                is_mapped_search = (len(distinct_teachers) != Teacher.objects.count()) 
-                
-                if not capable_teachers and is_mapped_search:
-                    # Expand to all teachers with capacity
-                    all_teachers = Teacher.objects.all()
-                    for t in all_teachers:
-                        if t.teacher_id in seen_ids: continue # Already checked
-                        current = teacher_load[t.teacher_id]
-                        if current + slots_per_section <= t.max_hours_per_week:
-                            capable_teachers.append(t)
-                
-                # Prioritize capable teachers
-                # Sort by current utilization (least loaded first) to balance
-                capable_teachers.sort(key=lambda t: teacher_load[t.teacher_id])
-                
-                # If we have enough capable teachers, great.
-                # If not, add overloaded ones (sorted by least overloaded)
-                overloaded_fallback.sort(key=lambda t: teacher_load[t.teacher_id])
-                
-                pool = capable_teachers + overloaded_fallback
-                
-                # Assign to sections via Round Robin but satisfying capacity
-                # We need to maintain a pointer or strategy?
-                # Simple strategy: Iterate through pool until we find one with capacity.
-                # If all full, add to pool from global?
-                
-                # It's better to fetch ALL capable teachers upfront? 
-                # We tried that with fallback.
-                # But 'pool' was snapshot.
-                
-                # Dynamic Assignment Loop
-                for i, section in enumerate(year_sections):
-                    selected_candidate = None
-                    
-                    # 1. Try from existing pool (Mapped + Fallback from before)
-                    # Sort pool by current load ASC to ensure balancing
-                    pool.sort(key=lambda t: teacher_load[t.teacher_id])
-                    
-                    for cand in pool:
-                        if teacher_load[cand.teacher_id] + slots_per_section <= cand.max_hours_per_week:
-                            selected_candidate = cand
-                            break
-                    
-                    # 2. If no candidate in pool, Try Global Search (Real-time)
-                    if not selected_candidate and is_mapped_search:
-                        # Find ANY teacher in system with capacity
-                        # Start with same dept if possible (not easy to guess), or just all
-                        # Efficiency note: optimize this query
-                        # We can iterate through ALL teachers and check `teacher_load`.
-                        # Since we have 86 teachers, it's cheap.
-                        
-                        best_global = None
-                        min_load = float('inf')
-                        
-                        all_teachers = list(Teacher.objects.all())
-                        random.shuffle(all_teachers) # Fairness
-                        
-                        for t in all_teachers:
-                            load = teacher_load[t.teacher_id]
-                            if load + slots_per_section <= t.max_hours_per_week:
-                                if load < min_load:
-                                    min_load = load
-                                    best_global = t
-                                    # Heuristic: if load is 0, pick immediately
-                                    if load == 0: break
-                        
-                        if best_global:
-                            selected_candidate = best_global
-                            # Add to pool for subsequent iterations of this course? 
-                            # Yes, effectively consistent
-                            pool.append(selected_candidate)
-                    
-                    # 3. If still no candidate, we MUST overload someone.
-                    if not selected_candidate:
-                        # Pick least loaded from pool
-                        pool.sort(key=lambda t: teacher_load[t.teacher_id])
-                        selected_candidate = pool[0] # Least loaded (even if overloaded)
-                    
-                    # Execute Assignment
-                    self.teacher_assignments[(course.course_id, section.class_id)] = selected_candidate
-                    teacher_load[selected_candidate.teacher_id] += slots_per_section
+            timeslot = entries[0].timeslot
+            # Child topics for this bucket
+            child_topics = Course.objects.filter(elective_group=group_id, is_schedulable=False)
+            
+            # Find allocations for these topics
+            # Use allocations for any section participating, or fallback to 'A'
+            participating_sections = [e.section.section for e in entries]
+            allocations = ElectiveAllocation.objects.filter(
+                course__in=child_topics,
+                section_group__in=participating_sections + ['A']
+            ).select_related('course', 'teacher')
+            
+            # Map Topic -> Allocation (prefer exact section match over 'A')
+            topic_to_alloc = {}
+            for alloc in allocations:
+                if alloc.course_id not in topic_to_alloc:
+                    topic_to_alloc[alloc.course_id] = alloc
+                elif alloc.section_group in participating_sections:
+                    # Prefer specific section allocation over fallback 'A'
+                    topic_to_alloc[alloc.course_id] = alloc
 
+            # Assign a ROOM for each allocated topic at this timeslot
+            # (Topics in the SAME bucket slot SHARE the rooms across sections)
+            for cid, alloc in topic_to_alloc.items():
+                room = self._find_expansion_room(timeslot, alloc.course)
+                if room:
+                    # Create assignment for ALL sections participating in this bucket slot
+                    # (Wait, usually students from all sections fill the same topics)
+                    for entry in entries:
+                        # Only assign if this topic is relevant for this section
+                        # (If section_group is 'A' and it's our fallback, or matches perfectly)
+                        if alloc.section_group == 'A' or alloc.section_group == entry.section.section:
+                            ElectiveAssignment.objects.create(
+                                schedule=self.schedule,
+                                parent_entry=entry,
+                                section=entry.section,
+                                course=alloc.course,
+                                teacher=alloc.teacher,
+                                room=room,
+                                timeslot=timeslot
+                            )
+
+    def _find_expansion_room(self, timeslot, course):
+        """Find a room for an elective topic that isn't busy in Master Schedule."""
+        room_type = 'LAB' if course.is_lab else 'CLASSROOM'
+        rooms = list(Room.objects.filter(room_type=room_type))
+        random.shuffle(rooms)
+        
+        for room in rooms:
+            # Check Master Schedule (ScheduleEntry)
+            if not ScheduleEntry.objects.filter(schedule=self.schedule, timeslot=timeslot, room=room).exists():
+                # Check other expansions in SAME schedule/timeslot
+                if not ElectiveAssignment.objects.filter(schedule=self.schedule, timeslot=timeslot, room=room).exists():
+                    return room
+        return None
+
+    def _preallocate_teachers(self, sections):
+        """Pre-allocate teachers ONLY for Core courses (is_elective=False)."""
+        from collections import defaultdict
+        teacher_load = defaultdict(int)
+        
+        for section in sections:
+            courses = self.schedulable_courses.filter(year=section.year, is_elective=False)
+            for course in courses:
+                slots = course.weekly_slots
+                mappings = list(TeacherCourseMapping.objects.filter(course=course).select_related('teacher').order_by('-preference_level'))
+                
+                # Balanced candidate selection
+                random.shuffle(mappings)
+                mappings.sort(key=lambda m: teacher_load[m.teacher.teacher_id])
+                
+                selected = None
+                for m in mappings:
+                    if teacher_load[m.teacher.teacher_id] + slots <= m.teacher.max_hours_per_week:
+                        selected = m.teacher
+                        break
+                
+                if not selected and mappings: selected = mappings[0].teacher # Overload
+                
+                if selected:
+                    self.teacher_assignments[(course.course_id, section.class_id)] = selected
+                    teacher_load[selected.teacher_id] += slots
 
     def _schedule_section_labs(self, section, timeslots):
-        """
-        Phase 1: Schedule Lab Blocks (Hardest Constraint)
-        """
-        courses = Course.objects.filter(
-            year=section.year,
-            semester=self.schedule.semester,
-            is_elective=False
-        )
+        """Stage 1: Schedule Core Labs (Indivisible Blocks)."""
+        courses = self.schedulable_courses.filter(year=section.year, is_elective=False, is_lab=True)
         
         for course in courses:
-            # Determine Lab Slots
-            lab_slots = course.practicals if (course.is_lab or course.practicals > 0) else 0
-            if lab_slots == 0:
+            lab_slots_total = course.practicals if (course.is_lab or course.practicals > 0) else 0
+            if lab_slots_total == 0:
                 continue
             
-            # Identify Teacher
-            assignment_key = (course.course_id, section.class_id)
-            teacher = self.teacher_assignments.get(assignment_key)
-            if not teacher:
-                # Fallback
-                mappings = TeacherCourseMapping.objects.filter(course=course).order_by('-preference_level')
-                if mappings.exists():
-                    teacher = mappings.first().teacher
-                else:
-                    self._log_conflict('NO_TEACHER', f"No teacher for {course.course_id} (Lab)", 'HIGH')
-                    continue
+            # Split lab into chunks (max 4 hours or as per roadmap)
+            # 12 hours -> three 4-hour chunks
+            chunks = []
+            remaining = lab_slots_total
+            while remaining > 0:
+                chunk_size = min(remaining, 4 if remaining > 4 else remaining)
+                # Ensure 12 doesn't result in a weird leftover (e.g. 4, 4, 4 is better than 8, 4)
+                # For 12, we can do 3 blocks of 4.
+                # For 6, we can do 2 blocks of 3.
+                chunks.append(chunk_size)
+                remaining -= chunk_size
+                
+            teacher = self.teacher_assignments.get((course.course_id, section.class_id))
+            if not teacher: continue
 
-            # Check if likely already scheduled (if re-running?)
-            # We assume fresh generation.
-            
-            block_assigned = False
-            
-            # Group timeslots by day
-            slots_by_day = {}
-            for ts in timeslots:
-                if ts.day not in slots_by_day:
-                    slots_by_day[ts.day] = []
-                slots_by_day[ts.day].append(ts)
-            
-            days = list(slots_by_day.keys())
-            random.shuffle(days)
-            
-            for day in days:
-                day_slots = sorted(slots_by_day[day], key=lambda x: x.slot_number)
-                # Try to find consecutive window
-                for i in range(len(day_slots) - lab_slots + 1):
-                    window = day_slots[i : i + lab_slots]
-                    
-                    # Validate continuity
-                    is_continuous = True
-                    for k in range(len(window) - 1):
-                        if window[k+1].slot_number != window[k].slot_number + 1:
-                            is_continuous = False
-                            break
-                    if not is_continuous: continue
+            for lab_slots in chunks:
+                block_assigned = False
+                slots_by_day = {}
+                for ts in timeslots:
+                    if ts.day not in slots_by_day: slots_by_day[ts.day] = []
+                    slots_by_day[ts.day].append(ts)
+                
+                days = list(slots_by_day.keys())
+                random.shuffle(days)
+                
+                for day in days:
+                    day_slots = sorted(slots_by_day[day], key=lambda x: x.slot_number)
+                    for i in range(len(day_slots) - lab_slots + 1):
+                        window = day_slots[i : i + lab_slots]
+                        
+                        # Validate continuity
+                        if not all(window[k+1].slot_number == window[k].slot_number + 1 for k in range(len(window)-1)):
+                            continue
 
-                    # Validate availability
-                    if self._can_schedule_block(window, section, course, teacher):
-                         # Pick Room
-                         valid_room = self._find_block_room(window, course)
-                         if valid_room:
-                             for ts in window:
-                                 ScheduleEntry.objects.create(
-                                     schedule=self.schedule,
-                                     section=section,
-                                     course=course,
-                                     teacher=teacher,
-                                     room=valid_room,
-                                     timeslot=ts,
-                                     is_lab_session=True
-                                 )
-                             block_assigned = True
-                             self.validator = ConstraintValidator(self.schedule)
-                             break
-                if block_assigned: break
-            
-            if not block_assigned:
-                self._log_conflict('LAB_BLOCK_FAILED', f"Failed to assign lab block for {course.course_id}", 'HIGH')
+                        if self._can_schedule_block(window, section, course, teacher):
+                             valid_room = self._find_block_room(window, course)
+                             if valid_room:
+                                 for ts in window:
+                                     ScheduleEntry.objects.create(
+                                         schedule=self.schedule,
+                                         section=section,
+                                         course=course,
+                                         teacher=teacher,
+                                         room=valid_room,
+                                         timeslot=ts,
+                                         is_lab_session=True
+                                     )
+                                 block_assigned = True
+                                 self.validator = ConstraintValidator(self.schedule)
+                                 break
+                    if block_assigned: break
+                
+                if not block_assigned:
+                    self._log_conflict('LAB_BLOCK_FAILED', f"Failed to assign {lab_slots}h lab chunk for {course.course_id}", 'HIGH')
 
-    def _schedule_section_theory(self, section, timeslots):
-        """
-        Phase 2: Schedule Theory Slots (Fill remaining)
-        """
-        courses = Course.objects.filter(
-            year=section.year,
-            semester=self.schedule.semester,
-            is_elective=False
-        )
+    def _schedule_section_theory_and_buckets(self, section, timeslots):
+        """Stage 2: Schedule Theory and synchronized Elective Buckets."""
+        from collections import defaultdict
         
-        for course in courses:
-            # Check how many slots already scheduled (Labs)
-            current_slots = ScheduleEntry.objects.filter(
+        # Schedulable items include Core Theory and Buckets
+        items = self.schedulable_courses.filter(year=section.year, is_lab=False)
+        
+        # To synchronize buckets across sections of same year:
+        # We process buckets first and use a synchronized slot pool
+        buckets = items.filter(is_elective=True)
+        theory = items.filter(is_elective=False)
+        
+        # 1. Handle Buckets (Simultaneity for all sections of same year)
+        for bucket in buckets:
+            # Check if already scheduled (by another section logic)
+            # Actually, to be simple, we can pick specific slots for EACH bucket and reserve them for the year.
+            self._schedule_synchronized_bucket(bucket, section, timeslots)
+
+        # 2. Handle Theory
+        for course in theory:
+            self._schedule_core_theory(course, section, timeslots)
+
+    def _schedule_synchronized_bucket(self, course, section, timeslots):
+        """Ensure elective buckets are in same slots for all sections of same year."""
+        # Check if any section of this year already has this bucket scheduled
+        existing = ScheduleEntry.objects.filter(
+            schedule=self.schedule,
+            section__year=section.year,
+            course=course
+        ).first()
+
+        if existing:
+            # Sync with existing slots
+            slots = ScheduleEntry.objects.filter(
+                schedule=self.schedule,
+                section__year=section.year,
+                course=course
+            ).values_list('timeslot_id', flat=True).distinct()
+            
+            for sid in slots:
+                ts = TimeSlot.objects.get(slot_id=sid)
+                ScheduleEntry.objects.create(
+                    schedule=self.schedule,
+                    section=section,
+                    course=course,
+                    timeslot=ts,
+                    teacher=None, # Bucket placeholder
+                    room=None,    # Room assigned during expansion
+                    is_lab_session=False
+                )
+            self.validator = ConstraintValidator(self.schedule)
+            return
+
+        # Otherwise, find new synchronized slots
+        available_slots = list(timeslots)
+        random.shuffle(available_slots)
+        
+        year_sections = list(Section.objects.filter(year=section.year))
+        
+        bucket_slots = []
+        for ts in available_slots:
+            if len(bucket_slots) >= course.weekly_slots: break
+            
+            # All sections must be free
+            if all(self.validator.validate_section_availability(s, ts)[0] for s in year_sections):
+                # Buckets must also be in different slots from OTHER buckets
+                if not ScheduleEntry.objects.filter(schedule=self.schedule, section=section, timeslot=ts).exists():
+                    bucket_slots.append(ts)
+        
+        for ts in bucket_slots:
+            ScheduleEntry.objects.create(
                 schedule=self.schedule,
                 section=section,
-                course=course
-            ).count()
+                course=course,
+                timeslot=ts,
+                teacher=None,
+                room=None,
+                is_lab_session=False
+            )
+        self.validator = ConstraintValidator(self.schedule)
+
+    def _schedule_core_theory(self, course, section, timeslots):
+        """Schedule remaining theory slots for a core course."""
+        current = ScheduleEntry.objects.filter(schedule=self.schedule, section=section, course=course).count()
+        needed = course.weekly_slots - current
+        if needed <= 0: return
+
+        teacher = self.teacher_assignments.get((course.course_id, section.class_id))
+        if not teacher: 
+            self._log_conflict('TEACHER_MISSING', f"No teacher assigned for {course.course_id} - {section.class_id}", 'HIGH')
+            return
+
+        slots_scheduled = 0
+        available_slots = list(timeslots)
+        
+        # PROPOSED CHANGE: Sort slots to prioritize days with fewer classes ("No Empty Days" constraint)
+        # 1. Calculate current load per day for this section
+        day_load = self._get_section_day_load(section)
+        
+        # 2. Shuffle first to ensure randomness within same load tiers
+        random.shuffle(available_slots)
+        
+        # 3. Sort by load (ascending)
+        # This puts slots on empty days (load=0) first!
+        available_slots.sort(key=lambda ts: day_load.get(ts.day, 0))
+
+        for ts in available_slots:
+            if slots_scheduled >= needed: break
             
-            needed = course.weekly_slots - current_slots
-            if needed <= 0:
-                continue
+            room = self._find_suitable_room(course, ts)
+            if not room: continue
             
-            # Identify Teacher
-            assignment_key = (course.course_id, section.class_id)
-            teacher = self.teacher_assignments.get(assignment_key)
-            if not teacher:
-                # Fallback
-                mappings = TeacherCourseMapping.objects.filter(course=course).order_by('-preference_level')
-                if mappings.exists():
-                    teacher = mappings.first().teacher
-                else:
-                    self._log_conflict('NO_TEACHER', f"No teacher for {course.course_id}", 'HIGH')
-                    continue
-            
-            slots_scheduled = 0
-            available_slots = list(timeslots)
-            random.shuffle(available_slots)
-            
-            for timeslot in available_slots:
-                if slots_scheduled >= needed:
-                    break
-                
-                room = self._find_suitable_room(course, timeslot)
-                if not room: continue
-                
-                is_valid, _ = self.validator.validate_all(section, course, teacher, room, timeslot)
-                if is_valid:
-                    ScheduleEntry.objects.create(
-                        schedule=self.schedule,
-                        section=section,
-                        course=course,
-                        teacher=teacher,
-                        room=room,
-                        timeslot=timeslot,
-                        is_lab_session=False
-                    )
-                    slots_scheduled += 1
-                    self.validator = ConstraintValidator(self.schedule)
+            is_valid, _ = self.validator.validate_all(section, course, teacher, room, ts)
+            if is_valid:
+                ScheduleEntry.objects.create(
+                    schedule=self.schedule,
+                    section=section,
+                    course=course,
+                    teacher=teacher,
+                    room=room,
+                    timeslot=ts,
+                    is_lab_session=False
+                )
+                slots_scheduled += 1
+                # Update local load for subsequent slots in this loop
+                day_load[ts.day] = day_load.get(ts.day, 0) + 1
+                self.validator = ConstraintValidator(self.schedule)
+        
+        if slots_scheduled < needed:
+             self._log_conflict('COURSE_INCOMPLETE', f"Could not schedule all slots for {course.course_id} ({slots_scheduled}/{needed})", 'MEDIUM')
+
+    def _get_section_day_load(self, section):
+        """Get number of classes scheduled per day for a section."""
+        from django.db.models import Count
+        counts = ScheduleEntry.objects.filter(
+            schedule=self.schedule, 
+            section=section
+        ).values('timeslot__day').annotate(count=Count('id'))
+        
+        day_map = {day: 0 for day in ['MON', 'TUE', 'WED', 'THU', 'FRI']}
+        for c in counts:
+            day_map[c['timeslot__day']] = c['count']
+        return day_map
             
     def _can_schedule_block(self, window, section, course, teacher):
         """Check if a block of slots is valid for teacher/section."""

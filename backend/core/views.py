@@ -16,13 +16,14 @@ from django.utils import timezone
 from .models import (
     Teacher, Course, Room, TimeSlot, Section,
     TeacherCourseMapping, Schedule, ScheduleEntry,
-    Constraint, ConflictLog, ChangeRequest
+    Constraint, ConflictLog, ChangeRequest, ElectiveAllocation, ElectiveAssignment
 )
 from .serializers import (
     TeacherSerializer, CourseSerializer, RoomSerializer,
     TimeSlotSerializer, SectionSerializer, TeacherCourseMappingSerializer,
     ScheduleSerializer, ScheduleDetailSerializer, ScheduleEntrySerializer,
-    ConstraintSerializer, ConflictLogSerializer, ChangeRequestSerializer
+    ConstraintSerializer, ConflictLogSerializer, ChangeRequestSerializer,
+    ElectiveAllocationSerializer
 )
 from accounts.permissions import IsAdmin, IsHODOrAdmin, IsFacultyOrAbove
 
@@ -411,3 +412,40 @@ class ChangeRequestViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(change_request)
         return Response(serializer.data)
+
+class ElectiveAllocationViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for ElectiveAllocation CRUD operations.
+    """
+    queryset = ElectiveAllocation.objects.all()
+    serializer_class = ElectiveAllocationSerializer
+    pagination_class = None
+    permission_classes = [IsHODOrAdmin]
+
+class DataManagementViewSet(viewsets.ViewSet):
+    """
+    API endpoint for bulk data operations.
+    """
+    permission_classes = [IsAdmin]
+
+    @action(detail=False, methods=['post'])
+    def clear_all(self, request):
+        """
+        Clears all core data from the system.
+        """
+        try:
+            # Delete in order of dependencies
+            ElectiveAssignment.objects.all().delete()
+            ScheduleEntry.objects.all().delete()
+            ConflictLog.objects.all().delete()
+            Schedule.objects.all().delete()
+            TeacherCourseMapping.objects.all().delete()
+            ElectiveAllocation.objects.all().delete()
+            Section.objects.all().delete()
+            Course.objects.all().delete()
+            Teacher.objects.all().delete()
+            Room.objects.all().delete()
+            
+            return Response({'message': 'All data cleared successfully'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

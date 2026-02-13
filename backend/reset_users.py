@@ -7,7 +7,8 @@ import re
 import sys
 
 # Setup Django
-sys.path.append('/Users/Vamsi/Desktop/SE/backend')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(BASE_DIR)
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'timetable_project.settings')
 django.setup()
 
@@ -52,8 +53,8 @@ def reset_users():
     # 2. Get Faculty Data from CSVs
     faculty_data = []
     csv_paths = [
-        '/Users/Vamsi/Desktop/SE/Datasets/teachers1.csv',
-        '/Users/Vamsi/Desktop/SE/Datasets/teachers2.csv'
+        os.path.join(BASE_DIR, '../Datasets/teachers1.csv'),
+        os.path.join(BASE_DIR, '../Datasets/teachers2.csv')
     ]
     
     for path in csv_paths:

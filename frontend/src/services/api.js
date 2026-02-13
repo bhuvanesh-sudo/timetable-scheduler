@@ -128,6 +128,14 @@ export const timeslotAPI = {
   byDay: (day) => api.get(`/timeslots/by_day/?day=${day}`),
 };
 
+export const electiveAllocationAPI = {
+  getAll: () => api.get('/elective-allocations/'),
+  getById: (id) => api.get(`/elective-allocations/${id}/`),
+  create: (data) => api.post('/elective-allocations/', data),
+  update: (id, data) => api.put(`/elective-allocations/${id}/`, data),
+  delete: (id) => api.delete(`/elective-allocations/${id}/`),
+};
+
 export const scheduleAPI = {
   getAll: () => api.get('/schedules/'),
   getById: (id) => api.get(`/schedules/${id}/`),
@@ -160,15 +168,16 @@ export const schedulerAPI = {
     return api.get(url);
   },
   validateSchedule: (scheduleId) => api.get(`/scheduler/validate/${scheduleId}/`),
+  getElectiveAssignments: (scheduleId) => api.get(`/scheduler/elective-assignments/?schedule_id=${scheduleId}`),
 };
 
-// System Health & Backup APIs
 export const systemAPI = {
   getInfo: () => api.get('/system/info/'),
   listBackups: () => api.get('/system/backups/'),
   createBackup: (label = '') => api.post('/system/backups/create/', { label }),
   restoreBackup: (filename) => api.post(`/system/restore/${filename}/`),
   deleteBackup: (filename) => api.delete(`/system/backups/${filename}/`),
+  clearAllData: () => api.post('/data-management/clear_all/'),
 };
 
 export const auditLogAPI = {

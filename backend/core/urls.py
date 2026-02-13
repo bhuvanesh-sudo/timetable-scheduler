@@ -14,7 +14,8 @@ from .views import (
     TeacherViewSet, CourseViewSet, RoomViewSet,
     TimeSlotViewSet, SectionViewSet, TeacherCourseMappingViewSet,
     ScheduleViewSet, ScheduleEntryViewSet, ConstraintViewSet,
-    ConflictLogViewSet, AuditLogViewSet, ChangeRequestViewSet
+    ConflictLogViewSet, AuditLogViewSet, ChangeRequestViewSet,
+    ElectiveAllocationViewSet, DataManagementViewSet
 )
 
 from .system_views import (
@@ -35,6 +36,8 @@ router.register(r'constraints', ConstraintViewSet, basename='constraint')
 router.register(r'conflict-logs', ConflictLogViewSet, basename='conflict-log')
 router.register(r'audit-logs', AuditLogViewSet, basename='audit-log')
 router.register(r'change-requests', ChangeRequestViewSet, basename='change-request')
+router.register(r'elective-allocations', ElectiveAllocationViewSet, basename='elective-allocation')
+router.register(r'data-management', DataManagementViewSet, basename='data-management')
 
 # The API URLs are now determined automatically by the router
 urlpatterns = [
