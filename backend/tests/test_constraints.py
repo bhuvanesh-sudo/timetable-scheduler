@@ -139,7 +139,7 @@ class TestConstraintValidator:
         assert is_valid is True
     
     def test_room_type_match_invalid(self, setup_data):
-        """Test room type matching for lab course in classroom"""
+        """Test room type matching for lab session in classroom"""
         # Create lab course
         lab_course = Course.objects.create(
             course_id='CS102L',
@@ -156,9 +156,11 @@ class TestConstraintValidator:
         )
         
         validator = ConstraintValidator(setup_data['schedule'])
+        # Lab SESSION in a CLASSROOM should be invalid
         is_valid, error = validator.validate_room_type_match(
             lab_course,
-            setup_data['room']
+            setup_data['room'],
+            is_lab_session=True
         )
         assert is_valid is False
         assert 'LAB' in error

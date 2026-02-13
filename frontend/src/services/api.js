@@ -159,6 +159,16 @@ export const schedulerAPI = {
     if (teacher) url += `&teacher=${teacher}`;
     return api.get(url);
   },
+  validateSchedule: (scheduleId) => api.get(`/scheduler/validate/${scheduleId}/`),
+};
+
+// System Health & Backup APIs
+export const systemAPI = {
+  getInfo: () => api.get('/system/info/'),
+  listBackups: () => api.get('/system/backups/'),
+  createBackup: (label = '') => api.post('/system/backups/create/', { label }),
+  restoreBackup: (filename) => api.post(`/system/restore/${filename}/`),
+  deleteBackup: (filename) => api.delete(`/system/backups/${filename}/`),
 };
 
 export const auditLogAPI = {

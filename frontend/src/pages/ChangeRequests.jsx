@@ -76,6 +76,24 @@ function ChangeRequests() {
 
     if (loading) return <div className="loading-spinner">Loading requests...</div>;
 
+    const getStatusBadge = (status) => {
+        switch (status) {
+            case 'PENDING': return 'badge-warning';
+            case 'APPROVED': return 'badge-success';
+            case 'REJECTED': return 'badge-danger';
+            default: return 'badge-secondary';
+        }
+    };
+
+    const getChangeTypeBadge = (type) => {
+        switch (type) {
+            case 'CREATE': return 'badge-success';
+            case 'UPDATE': return 'badge-warning';
+            case 'DELETE': return 'badge-danger';
+            default: return 'badge-secondary';
+        }
+    };
+
     return (
         <div className="change-requests-page">
             <div className="page-header">
@@ -237,14 +255,14 @@ function ChangeRequests() {
                                         className="btn btn-success"
                                         disabled={processing}
                                     >
-                                        Approve
+                                        ✓ Approve
                                     </button>
                                     <button
                                         onClick={() => handleReject(selectedRequest.id)}
                                         className="btn btn-danger"
                                         disabled={processing}
                                     >
-                                        Reject
+                                        ✗ Reject
                                     </button>
                                 </>
                             )}
@@ -260,24 +278,6 @@ function ChangeRequests() {
             )}
         </div>
     );
-}
-
-function getChangeTypeBadge(type) {
-    switch (type) {
-        case 'CREATE': return 'bg-success';
-        case 'UPDATE': return 'bg-warning';
-        case 'DELETE': return 'bg-danger';
-        default: return 'bg-secondary';
-    }
-}
-
-function getStatusBadge(status) {
-    switch (status) {
-        case 'PENDING': return 'bg-warning';
-        case 'APPROVED': return 'bg-success';
-        case 'REJECTED': return 'bg-danger';
-        default: return 'bg-secondary';
-    }
 }
 
 export default ChangeRequests;

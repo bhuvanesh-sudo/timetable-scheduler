@@ -5,31 +5,65 @@
  */
 
 import { useState, useEffect } from 'react';
-import { scheduleAPI, schedulerAPI, sectionAPI } from '../services/api';
+import { scheduleAPI, schedulerAPI, sectionAPI, teacherAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 function ViewTimetable() {
+    const { user } = useAuth();
     const [schedules, setSchedules] = useState([]);
     const [sections, setSections] = useState([]);
+    const [teachers, setTeachers] = useState([]);
+
     const [selectedSchedule, setSelectedSchedule] = useState('');
     const [selectedSection, setSelectedSection] = useState('');
+    const [selectedTeacher, setSelectedTeacher] = useState('');
+
     const [timetable, setTimetable] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [verificationResult, setVerificationResult] = useState(null);
+    const [showVerificationModal, setShowVerificationModal] = useState(false);
+    const [verifying, setVerifying] = useState(false);
 
     const days = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
     const slots = [1, 2, 3, 4, 5, 6, 7, 8];
 
     useEffect(() => {
         loadInitialData();
-    }, []);
+    }, [user]); // Reload if user context changes
+
+    useEffect(() => {
+        if (user && user.role === 'FACULTY' && user.teacher_id) {
+            setSelectedTeacher(user.teacher_id);
+        }
+    }, [user]);
 
     const loadInitialData = async () => {
         try {
-            const [schedulesRes, sectionsRes] = await Promise.all([
+            const promises = [
                 scheduleAPI.getAll(),
                 sectionAPI.getAll(),
-            ]);
-            setSchedules(schedulesRes.data.results || []);
-            setSections(sectionsRes.data.results || []);
+            ];
+
+            // Only Admins need to load all teachers
+            if (user && (user.role === 'ADMIN' || user.role === 'HOD')) {
+                promises.push(teacherAPI.getAll());
+            }
+
+            const [schedulesRes, sectionsRes, teachersRes] = await Promise.all(promises);
+
+            setSchedules(schedulesRes.data.results || schedulesRes.data || []);
+            setSections(sectionsRes.data.results || sectionsRes.data || []);
+            if (teachersRes) {
+                setTeachers(teachersRes.data.results || teachersRes.data || []);
+            }
+
+            // Auto-select latest schedule for Faculty
+            if (user?.role === 'FACULTY' && !selectedSchedule) {
+                const availableSchedules = schedulesRes.data.results || schedulesRes.data || [];
+                if (availableSchedules.length > 0) {
+                    setSelectedSchedule(availableSchedules[0].schedule_id);
+                }
+            }
         } catch (error) {
             console.error('Error loading data:', error);
         }
@@ -40,9 +74,13 @@ function ViewTimetable() {
 
         setLoading(true);
         try {
+            // If Faculty, force selectedTeacher to be their ID (security/UX)
+            const teacherId = (user && user.role === 'FACULTY') ? user.teacher_id : selectedTeacher;
+
             const response = await schedulerAPI.getTimetable(
                 selectedSchedule,
-                selectedSection || null
+                selectedSection || null,
+                teacherId || null
             );
             setTimetable(response.data);
         } catch (error) {
@@ -52,17 +90,39 @@ function ViewTimetable() {
         }
     };
 
+    const handleVerifySchedule = async () => {
+        if (!selectedSchedule) return;
+
+        setVerifying(true);
+        try {
+            const response = await schedulerAPI.validateSchedule(selectedSchedule);
+            setVerificationResult(response.data);
+            setShowVerificationModal(true);
+        } catch (error) {
+            console.error('Verification failed:', error);
+            alert('Failed to verify schedule');
+        } finally {
+            setVerifying(false);
+        }
+    };
+
     useEffect(() => {
         if (selectedSchedule) {
             loadTimetable();
         }
-    }, [selectedSchedule, selectedSection]);
+    }, [selectedSchedule, selectedSection, selectedTeacher]);
 
     return (
-        <div>
+        <div className="fade-in">
             <div className="page-header">
-                <h1 className="page-title">View Timetable</h1>
-                <p className="page-description">View generated timetable schedules</p>
+                <h1 className="page-title">
+                    {user?.role === 'FACULTY' ? 'My Timetable' : 'View Timetable'}
+                </h1>
+                <p className="page-description">
+                    {user?.role === 'FACULTY'
+                        ? `Viewing schedule for ${user.first_name} ${user.last_name}`
+                        : 'View generated timetable schedules'}
+                </p>
             </div>
 
             {/* Filters */}
@@ -78,14 +138,48 @@ function ViewTimetable() {
                             <option value="">-- Select Schedule --</option>
                             {schedules.map((schedule) => (
                                 <option key={schedule.schedule_id} value={schedule.schedule_id}>
-                                    All Years, {schedule.semester}
+                                    {schedule.name} (Year {schedule.year}, {schedule.semester})
                                 </option>
                             ))}
                         </select>
+                        {(selectedSchedule && (user?.role === 'ADMIN' || user?.role === 'HOD')) && (
+                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+                                <button
+                                    className="btn btn-success"
+                                    onClick={handleVerifySchedule}
+                                    disabled={verifying}
+                                    style={{ flex: 1 }}
+                                >
+                                    {verifying ? 'Verifying...' : 'Verify Schedule'}
+                                </button>
+                                <button
+                                    className="btn btn-danger"
+                                    onClick={async () => {
+                                        if (window.confirm("Are you sure you want to delete this schedule?")) {
+                                            try {
+                                                await scheduleAPI.delete(selectedSchedule);
+                                                alert("Schedule deleted successfully.");
+                                                setSelectedSchedule('');
+                                                setTimetable(null);
+                                                loadInitialData();
+                                            } catch (err) {
+                                                alert("Error deleting schedule");
+                                            }
+                                        }
+                                    }}
+                                    style={{ flex: 1 }}
+                                >
+                                    Delete Schedule
+                                </button>
+                            </div>
+                        )}
                     </div>
 
+                    {/* Section Filter */}
                     <div className="filter-group">
-                        <label className="filter-label">Filter by Section (Optional)</label>
+                        <label className="filter-label">
+                            {user?.role === 'FACULTY' ? 'Filter My Schedule by Section' : 'Filter by Section'}
+                        </label>
                         <select
                             className="filter-select"
                             value={selectedSection}
@@ -99,6 +193,25 @@ function ViewTimetable() {
                             ))}
                         </select>
                     </div>
+
+                    {/* Teacher Filter - Only for Admin */}
+                    {(user?.role === 'ADMIN' || user?.role === 'HOD') && (
+                        <div className="filter-group">
+                            <label className="filter-label">Filter by Teacher (Optional)</label>
+                            <select
+                                className="filter-select"
+                                value={selectedTeacher}
+                                onChange={(e) => setSelectedTeacher(e.target.value)}
+                            >
+                                <option value="">All Teachers</option>
+                                {teachers.map((teacher) => (
+                                    <option key={teacher.teacher_id} value={teacher.teacher_id}>
+                                        {teacher.teacher_name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -113,7 +226,17 @@ function ViewTimetable() {
             {!loading && timetable && (
                 <div className="card">
                     <div className="card-header">
-                        <h2 className="card-title">Timetable Grid</h2>
+                        <h2 className="card-title">Weekly Schedule</h2>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            {user?.role === 'FACULTY' && (
+                                <span className="badge-pill badge-primary">Faculty View</span>
+                            )}
+                            {(selectedTeacher && user?.role !== 'FACULTY') && (
+                                <span className="badge-pill badge-info">
+                                    Teacher: {teachers.find(t => t.teacher_id === selectedTeacher)?.teacher_name || selectedTeacher}
+                                </span>
+                            )}
+                        </div>
                     </div>
 
                     <div className="timetable-grid">
@@ -134,7 +257,7 @@ function ViewTimetable() {
                                         {timetable[day]?.[slot]?.map((classItem, idx) => (
                                             <div
                                                 key={idx}
-                                                className={`class-block ${classItem.is_lab_session ? 'lab' : 'theory'}`}
+                                                className={`class-block ${classItem.is_lab_session ? 'lab' : 'theory'} ${classItem.teacher_id === (user?.teacher_id || selectedTeacher) ? 'highlight-teacher' : ''}`}
                                             >
                                                 <div className="class-code">
                                                     {classItem.course_code}
@@ -142,9 +265,7 @@ function ViewTimetable() {
                                                 </div>
                                                 <div className="class-teacher">{classItem.teacher_name}</div>
                                                 <div className="class-room">Room: {classItem.room}</div>
-                                                {selectedSection === '' && (
-                                                    <div className="class-room">Sec: {classItem.section}</div>
-                                                )}
+                                                <div className="class-room">Sec: {classItem.section}</div>
                                             </div>
                                         ))}
                                     </div>
@@ -157,13 +278,89 @@ function ViewTimetable() {
 
             {!loading && !timetable && selectedSchedule && (
                 <div className="alert alert-info">
-                    No timetable data available for the selected schedule.
+                    {user?.role === 'FACULTY'
+                        ? "You have no classes assigned in this schedule selection."
+                        : "No timetable data available for this selection."}
                 </div>
             )}
 
             {!selectedSchedule && (
                 <div className="alert alert-info">
                     Please select a schedule to view the timetable.
+                </div>
+            )}
+            {/* Verification Modal */}
+            {showVerificationModal && verificationResult && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0, 0, 0, 0.5)',
+                    backdropFilter: 'blur(4px)',
+                    WebkitBackdropFilter: 'blur(4px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    zIndex: 1000,
+                    animation: 'fadeIn 0.3s ease-out',
+                }}>
+                    <div style={{
+                        background: 'var(--card-bg)',
+                        border: '1px solid var(--card-border)',
+                        borderRadius: 'var(--radius-lg)',
+                        boxShadow: 'var(--shadow-xl)',
+                        padding: 'var(--spacing-lg)',
+                        maxWidth: '480px',
+                        width: '90%',
+                        maxHeight: '80vh',
+                        overflow: 'auto',
+                    }}>
+                        <h3 style={{
+                            fontSize: '1.25rem',
+                            fontWeight: 700,
+                            color: 'var(--text-primary)',
+                            marginBottom: '0.25rem',
+                        }}>
+                            {verificationResult.valid ? 'Schedule Verified' : 'Issues Detected'}
+                        </h3>
+                        <p style={{
+                            color: 'var(--text-muted)',
+                            fontSize: '0.875rem',
+                            marginBottom: 'var(--spacing-md)',
+                        }}>
+                            {verificationResult.valid
+                                ? 'No conflicts found. This schedule is ready to publish.'
+                                : `${verificationResult.conflicts.length} conflict(s) need attention before publishing.`
+                            }
+                        </p>
+
+                        {!verificationResult.valid && (
+                            <div style={{
+                                background: 'var(--bg-tertiary)',
+                                borderRadius: 'var(--radius-md)',
+                                padding: 'var(--spacing-sm) var(--spacing-md)',
+                                marginBottom: 'var(--spacing-lg)',
+                                maxHeight: '220px',
+                                overflowY: 'auto',
+                                border: '1px solid var(--border)',
+                            }}>
+                                {verificationResult.conflicts.map((conflict, idx) => (
+                                    <div key={idx} style={{
+                                        padding: '0.5rem 0',
+                                        borderBottom: idx < verificationResult.conflicts.length - 1 ? '1px solid var(--border)' : 'none',
+                                        fontSize: '0.85rem',
+                                        color: 'var(--text-primary)',
+                                    }}>
+                                        {conflict}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        <button
+                            className="btn btn-primary"
+                            onClick={() => setShowVerificationModal(false)}
+                            style={{ width: '100%' }}
+                        >
+                            Close
+                        </button>
+                    </div>
                 </div>
             )}
         </div>

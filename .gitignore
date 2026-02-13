@@ -26,3 +26,7 @@ frontend/.env
 
 # Agent
 .gemini/
+
+# Runtime data (backups & audit DB)
+backend/backups/
+backend/audit_db.sqlite3

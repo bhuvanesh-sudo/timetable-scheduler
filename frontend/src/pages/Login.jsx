@@ -6,10 +6,9 @@ import { User, Lock, Loader2, ArrowRight, LayoutGrid } from 'lucide-react';
 import '../styles/Login.css';
 
 /**
- * Login Page
+ * Login Page - Amrita Branded Edition
  * 
  * Handles user authentication and role-based redirection.
- * Admin/HOD -> Dashboard, Faculty -> My Schedule.
  */
 const Login = () => {
     const [username, setUsername] = useState('');
@@ -22,7 +21,6 @@ const Login = () => {
 
     const from = location.state?.from?.pathname || '/';
 
-    // Handle form submission and forced redirection for Faculty
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
@@ -31,9 +29,8 @@ const Login = () => {
         const result = await login(username, password);
 
         if (result.success) {
-            // Force redirect for Faculty
             if (result.user?.role === 'FACULTY') {
-                navigate('/my-schedule', { replace: true });
+                navigate('/timetable', { replace: true });
             } else {
                 navigate(from, { replace: true });
             }
@@ -63,7 +60,7 @@ const Login = () => {
                         transition={{ delay: 0.2, duration: 0.5 }}
                         className="brand-logo-wrapper"
                     >
-                        <LayoutGrid size={32} color="#818cf8" />
+                        <LayoutGrid size={32} color="var(--primary-light)" />
                     </motion.div>
 
                     <motion.h1
@@ -84,7 +81,7 @@ const Login = () => {
                         transition={{ delay: 0.4, duration: 0.5 }}
                         className="brand-desc"
                     >
-                        Automated conflict-free scheduling for modern universities.
+                        Automated conflict-free scheduling for Amrita University.
                         Optimize resources, manage faculty workloads, and generate timetables in seconds.
                     </motion.p>
                 </div>
@@ -183,7 +180,7 @@ const Login = () => {
                     </button>
 
                     <div className="form-footer">
-                        M3 System v1.0 © 2026
+                        M3 System for Amrita University v1.0 © 2026
                     </div>
                 </motion.div>
             </div>

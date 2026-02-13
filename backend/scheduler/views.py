@@ -12,7 +12,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Count, Avg
-from core.models import Schedule, ScheduleEntry, Teacher, Room
+from core.models import Schedule, ScheduleEntry, Teacher, Room, Section, TimeSlot, Course
 from core.serializers import ScheduleSerializer, ScheduleDetailSerializer
 from .algorithm import generate_schedule
 from accounts.permissions import IsHODOrAdmin, IsFacultyOrAbove
@@ -163,7 +163,7 @@ def get_timetable_view(request):
     
     if section_id:
         query = query.filter(section_id=section_id)
-    elif teacher_id:
+    if teacher_id:
         query = query.filter(teacher_id=teacher_id)
     
     # Get entries with related data
@@ -265,4 +265,86 @@ def get_my_schedule(request):
     return Response({
         'schedule_id': schedule_id,
         'timetable': timetable
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsHODOrAdmin])
+def validate_schedule(request, schedule_id):
+    """
+    Run hard-constraint integrity checks on a schedule.
+    Checks: Teacher double-booking, Room double-booking,
+    Section double-booking, Room-type mismatch.
+    """
+    try:
+        schedule = Schedule.objects.get(schedule_id=schedule_id)
+    except Schedule.DoesNotExist:
+        return Response(
+            {"error": "Schedule not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    conflicts = []
+    entries = ScheduleEntry.objects.filter(schedule=schedule)
+
+    # 1. Teacher double-booking
+    teacher_clashes = (
+        entries.values('teacher', 'timeslot')
+        .annotate(count=Count('id'))
+        .filter(count__gt=1)
+    )
+    for c in teacher_clashes:
+        t = Teacher.objects.get(pk=c['teacher'])
+        ts = TimeSlot.objects.get(pk=c['timeslot'])
+        check_count = c['count']
+        conflicts.append(
+            f"Teacher '{t.teacher_name}' is assigned {check_count} classes at {ts.day} Slot {ts.slot_number}"
+        )
+
+    # 2. Room double-booking
+    room_clashes = (
+        entries.values('room', 'timeslot')
+        .annotate(count=Count('id'))
+        .filter(count__gt=1)
+    )
+    for c in room_clashes:
+        r = Room.objects.get(pk=c['room'])
+        ts = TimeSlot.objects.get(pk=c['timeslot'])
+        check_count = c['count']
+        conflicts.append(
+            f"Room '{r.room_id}' has {check_count} classes at {ts.day} Slot {ts.slot_number}"
+        )
+
+    # 3. Section double-booking
+    section_clashes = (
+        entries.values('section', 'timeslot')
+        .annotate(count=Count('id'))
+        .filter(count__gt=1)
+    )
+    for c in section_clashes:
+        s = Section.objects.get(pk=c['section'])
+        ts = TimeSlot.objects.get(pk=c['timeslot'])
+        check_count = c['count']
+        conflicts.append(
+            f"Section '{s.class_id}' has {check_count} classes at {ts.day} Slot {ts.slot_number}"
+        )
+
+    # 4. Room-type mismatch (lab session in theory room or vice versa)
+    for entry in entries.select_related('course', 'room'):
+        room = entry.room
+        if entry.is_lab_session:
+            if room.room_type != 'LAB':
+                conflicts.append(
+                    f"Lab session for '{entry.course.course_name}' assigned to non-lab room '{room.room_id}'"
+                )
+        else:
+            if room.room_type == 'LAB':
+                conflicts.append(
+                    f"Theory session for '{entry.course.course_name}' assigned to lab room '{room.room_id}'"
+                )
+
+    return Response({
+        "valid": len(conflicts) == 0,
+        "total_entries": entries.count(),
+        "conflicts": conflicts,
     })

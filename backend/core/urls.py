@@ -17,6 +17,10 @@ from .views import (
     ConflictLogViewSet, AuditLogViewSet, ChangeRequestViewSet
 )
 
+from .system_views import (
+    list_backups, create_backup, restore_backup, delete_backup, system_info
+)
+
 # Create a router and register our viewsets
 router = DefaultRouter()
 router.register(r'teachers', TeacherViewSet, basename='teacher')
@@ -35,4 +39,11 @@ router.register(r'change-requests', ChangeRequestViewSet, basename='change-reque
 # The API URLs are now determined automatically by the router
 urlpatterns = [
     path('', include(router.urls)),
+    # System Health & Backup endpoints
+    path('system/info/', system_info, name='system-info'),
+    path('system/backups/', list_backups, name='list-backups'),
+    path('system/backups/create/', create_backup, name='create-backup'),
+    path('system/backups/<str:filename>/', delete_backup, name='delete-backup'),
+    path('system/restore/<str:filename>/', restore_backup, name='restore-backup'),
 ]
+

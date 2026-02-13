@@ -95,20 +95,26 @@ class ConstraintValidator:
             return False, f"Section {section.class_id} already has a class at {timeslot}"
         return True, None
     
-    def validate_room_type_match(self, course, room):
+    def validate_room_type_match(self, course, room, is_lab_session=False):
         """
-        Check if room type matches course requirements.
-        Lab courses need LAB rooms, theory courses can use any room.
+        Check if room type matches the session type.
+        Practical/lab sessions need LAB rooms.
+        Theory/lecture sessions need CLASSROOM rooms.
         
         Args:
             course: Course object
             room: Room object
+            is_lab_session: Whether this is a lab/practical session
         
         Returns:
             tuple: (is_valid, error_message)
         """
-        if course.is_lab and room.room_type != 'LAB':
-            return False, f"Lab course {course.course_name} requires a LAB room, but {room.room_id} is a {room.room_type}"
+        if is_lab_session and room.room_type != 'LAB':
+            return False, f"Lab session for {course.course_name} requires a LAB room, but {room.room_id} is a {room.room_type}"
+        
+        if not is_lab_session and room.room_type == 'LAB':
+             return False, f"Theory session for {course.course_name} should not be in LAB room {room.room_id}"
+             
         return True, None
     
     def validate_continuous_hours(self, teacher, timeslot, max_hours=4):
@@ -170,7 +176,7 @@ class ConstraintValidator:
         
         return True, None
     
-    def validate_all(self, section, course, teacher, room, timeslot):
+    def validate_all(self, section, course, teacher, room, timeslot, is_lab_session=False):
         """
         Run all constraint validations for a proposed schedule entry.
         
@@ -180,6 +186,7 @@ class ConstraintValidator:
             teacher: Teacher object
             room: Room object
             timeslot: TimeSlot object
+            is_lab_session: Whether this is a lab/practical session
         
         Returns:
             tuple: (is_valid, list_of_errors)
@@ -202,7 +209,7 @@ class ConstraintValidator:
             errors.append(error)
         
         # Check room type match
-        is_valid, error = self.validate_room_type_match(course, room)
+        is_valid, error = self.validate_room_type_match(course, room, is_lab_session)
         if not is_valid:
             errors.append(error)
         
