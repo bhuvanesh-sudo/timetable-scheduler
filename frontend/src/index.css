@@ -7,14 +7,18 @@
 
 :root {
   /* Sophisticated Violet Palette (Option B) */
-  --primary: #7c3aed;  /* Violet 600 */
-  --primary-dark: #5b21b6; /* Violet 800 */
-  --primary-light: #a78bfa; /* Violet 400 */
+  --primary: #7c3aed;
+  /* Violet 600 */
+  --primary-dark: #5b21b6;
+  /* Violet 800 */
+  --primary-light: #a78bfa;
+  /* Violet 400 */
   --secondary: #64748b;
   --success: #10b981;
   --warning: #f59e0b;
   --danger: #ef4444;
-  --lab-color: #0ea5e9; /* Sky 500 - Distinct from Violet */
+  --lab-color: #0ea5e9;
+  /* Sky 500 - Distinct from Violet */
 
   /* Surfaces & Glassmorphism (Light) */
   --bg-primary: #ffffff;
@@ -77,12 +81,15 @@
   --border: #1e293b;
 
   /* Timetable (Dark) */
-  --grid-cell-bg: rgba(30, 41, 59, 0.4);
-  --grid-cell-hover: rgba(30, 41, 59, 0.8);
-  --class-theory-bg: #1e3a8a;
-  --class-theory-text: #dbeafe;
-  --class-lab-bg: #4c1d95;
-  --class-lab-text: #ede9fe;
+  /* Timetable (Dark - Premium Glass) */
+  --grid-cell-bg: rgba(15, 23, 42, 0.3);
+  --grid-cell-hover: rgba(30, 41, 59, 0.6);
+  /* Theory: Dark Violet Glass */
+  --class-theory-bg: rgba(109, 40, 217, 0.25);
+  --class-theory-text: #ede9fe;
+  /* Lab: Dark Sky Glass */
+  --class-lab-bg: rgba(14, 165, 233, 0.25);
+  --class-lab-text: #e0f2fe;
 
   --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.5);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.5);
