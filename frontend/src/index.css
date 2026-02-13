@@ -6,15 +6,15 @@
  */
 
 :root {
-  /* Amrita University Brand Palette (Primary: Maroon #A4123F) */
-  --primary: #A4123F;
-  --primary-dark: #800e31;
-  --primary-light: #c8164d;
+  /* Sophisticated Violet Palette (Option B) */
+  --primary: #7c3aed;  /* Violet 600 */
+  --primary-dark: #5b21b6; /* Violet 800 */
+  --primary-light: #a78bfa; /* Violet 400 */
   --secondary: #64748b;
   --success: #10b981;
   --warning: #f59e0b;
   --danger: #ef4444;
-  --lab-color: #8b5cf6;
+  --lab-color: #0ea5e9; /* Sky 500 - Distinct from Violet */
 
   /* Surfaces & Glassmorphism (Light) */
   --bg-primary: #ffffff;
@@ -99,8 +99,8 @@ body {
   font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
   background-color: var(--bg-secondary);
-  background-image: radial-gradient(at 0% 0%, rgba(164, 18, 63, 0.1) 0px, transparent 50%),
-    radial-gradient(at 50% 0%, rgba(200, 22, 77, 0.1) 0px, transparent 50%);
+  background-image: radial-gradient(at 0% 0%, rgba(124, 58, 237, 0.1) 0px, transparent 50%),
+    radial-gradient(at 50% 0%, rgba(139, 92, 246, 0.1) 0px, transparent 50%);
   color: var(--text-primary);
   line-height: 1.5;
   transition: background-color 0.3s ease, color 0.3s ease;

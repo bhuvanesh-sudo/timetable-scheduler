@@ -152,7 +152,7 @@ function ViewTimetable() {
             startY: subtitle ? 35 : 25,
             theme: 'grid',
             styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
-            headStyles: { fillColor: [66, 66, 66], textColor: 255 },
+            headStyles: { fillColor: [124, 58, 237], textColor: 255 },
             columnStyles: {
                 0: { cellWidth: 20, fontStyle: 'bold' } // Time column
             },
