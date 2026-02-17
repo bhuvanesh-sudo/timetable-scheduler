@@ -20,6 +20,11 @@ function ViewTimetable() {
     const [showAllocationsModal, setShowAllocationsModal] = useState(false);
     const [verifying, setVerifying] = useState(false);
     const [loadingAllocations, setLoadingAllocations] = useState(false);
+    const [isMasterView, setIsMasterView] = useState(false);
+
+    // Map elective groups to color indices
+    const electiveColorMap = {};
+    let nextColorIdx = 1;
 
     const days = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
     const slots = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -236,6 +241,26 @@ function ViewTimetable() {
                             </select>
                         </div>
                     )}
+
+                    {/* Master View Toggle */}
+                    <div className="filter-group">
+                        <label className="filter-label">Display Mode</label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '40px' }}>
+                            <input
+                                type="checkbox"
+                                id="masterView"
+                                checked={isMasterView}
+                                onChange={(e) => {
+                                    setIsMasterView(e.target.checked);
+                                    if (e.target.checked) {
+                                        setSelectedSection('');
+                                        setSelectedTeacher('');
+                                    }
+                                }}
+                            />
+                            <label htmlFor="masterView" style={{ fontWeight: 600, cursor: 'pointer' }}>Master View (All Sections)</label>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -278,20 +303,32 @@ function ViewTimetable() {
                                 </div>
                                 {days.map((day) => (
                                     <div key={`${day}-${slot}`} className="grid-cell">
-                                        {timetable[day]?.[slot]?.map((classItem, idx) => (
-                                            <div
-                                                key={idx}
-                                                className={`class-block ${classItem.is_lab_session ? 'lab' : 'theory'} ${classItem.teacher_id === (user?.teacher_id || selectedTeacher) ? 'highlight-teacher' : ''}`}
-                                            >
-                                                <div className="class-code">
-                                                    {classItem.course_code}
-                                                    {classItem.is_lab_session && <span className="lab-badge">LAB</span>}
+                                        {timetable[day]?.[slot]?.map((classItem, idx) => {
+                                            let electiveClass = '';
+                                            if (classItem.course_code.includes('PE') || classItem.course_code.includes('ELECTIVE') || classItem.course_code.includes('AVP') || classItem.course_code.includes('LIFE')) {
+                                                const groupKey = classItem.course_code.split('-')[0]; // Simple grouping
+                                                if (!electiveColorMap[groupKey]) {
+                                                    electiveColorMap[groupKey] = (nextColorIdx % 6) + 1;
+                                                    nextColorIdx++;
+                                                }
+                                                electiveClass = `elective-group-${electiveColorMap[groupKey]}`;
+                                            }
+
+                                            return (
+                                                <div
+                                                    key={idx}
+                                                    className={`class-block ${classItem.is_lab_session ? 'lab' : 'theory'} ${electiveClass} ${classItem.teacher_id === (user?.teacher_id || selectedTeacher) ? 'highlight-teacher' : ''}`}
+                                                >
+                                                    <div className="class-code">
+                                                        {classItem.course_code}
+                                                        {classItem.is_lab_session && <span className="lab-badge">LAB</span>}
+                                                    </div>
+                                                    <div className="class-teacher">{classItem.teacher_name}</div>
+                                                    <div className="class-room">Room: {classItem.room}</div>
+                                                    <div className="class-room">Sec: {classItem.section}</div>
                                                 </div>
-                                                <div className="class-teacher">{classItem.teacher_name}</div>
-                                                <div className="class-room">Room: {classItem.room}</div>
-                                                <div className="class-room">Sec: {classItem.section}</div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 ))}
                             </>

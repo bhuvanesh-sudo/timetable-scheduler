@@ -532,3 +532,106 @@ def get_elective_assignments(request):
         })
         
     return Response(data)
+
+
+@api_view(['GET'])
+@permission_classes([IsHODOrAdmin])
+def get_faculty_load_summary(request):
+    """
+    Get summary of faculty mappings and current workload.
+    """
+    schedule_id = request.query_params.get('schedule_id')
+    
+    teachers = Teacher.objects.all().order_by('teacher_name')
+    data = []
+    
+    for t in teachers:
+        # Get core courses with their sections from mappings
+        # Note: Mapping is Teacher -> Course, but for workload view 
+        # we want to see which Sections this teacher is scheduled for
+        
+        core_assignments = []
+        if schedule_id:
+            core_entries = ScheduleEntry.objects.filter(
+                schedule_id=schedule_id,
+                teacher=t,
+                course__is_elective=False
+            ).select_related('course', 'section')
+            
+            # Group by course
+            course_map = {}
+            for e in core_entries:
+                if e.course.course_id not in course_map:
+                    course_map[e.course.course_id] = {
+                        'name': e.course.course_name,
+                        'sections': set()
+                    }
+                course_map[e.course.course_id]['sections'].add(e.section.class_id)
+            
+            for cid, info in course_map.items():
+                core_assignments.append({
+                    'course_id': cid,
+                    'course_name': info['name'],
+                    'sections': sorted(list(info['sections']))
+                })
+        else:
+            # If no schedule, just show mappings
+            courses = Course.objects.filter(
+                teacher_mappings__teacher=t,
+                is_elective=False
+            )
+            for c in courses:
+                core_assignments.append({
+                    'course_id': c.course_id,
+                    'course_name': c.course_name,
+                    'sections': [] # Unknown without schedule
+                })
+        
+        # Get elective allocations with sections
+        elective_assignments = []
+        if schedule_id:
+            electives = ElectiveAssignment.objects.filter(
+                teacher=t,
+                schedule_id=schedule_id
+            ).select_related('course', 'section')
+            
+            e_course_map = {}
+            for e in electives:
+                if e.course.course_id not in e_course_map:
+                    e_course_map[e.course.course_id] = {
+                        'name': e.course.course_name,
+                        'sections': set()
+                    }
+                e_course_map[e.course.course_id]['sections'].add(e.section.class_id)
+            
+            for cid, info in e_course_map.items():
+                elective_assignments.append({
+                    'course_id': cid,
+                    'course_name': info['name'],
+                    'sections': sorted(list(info['sections']))
+                })
+            
+        # Current load calculation
+        current_load = 0
+        if schedule_id:
+            core_load = ScheduleEntry.objects.filter(
+                schedule_id=schedule_id,
+                teacher=t
+            ).count()
+            elective_load = ElectiveAssignment.objects.filter(
+                schedule_id=schedule_id,
+                teacher=t
+            ).count()
+            current_load = core_load + elective_load
+            
+        data.append({
+            'teacher_id': t.teacher_id,
+            'teacher_name': t.teacher_name,
+            'department': t.department,
+            'max_hours': t.max_hours_per_week,
+            'current_load': current_load,
+            'core_assignments': core_assignments,
+            'elective_assignments': elective_assignments
+        })
+        
+    return Response(data)

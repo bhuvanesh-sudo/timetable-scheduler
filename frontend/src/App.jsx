@@ -18,6 +18,7 @@ import ChangeRequests from './pages/ChangeRequests';
 import TeacherRequests from './pages/TeacherRequests';
 import SystemHealth from './pages/SystemHealth';
 import Login from './pages/Login';
+import FacultyLoad from './pages/FacultyLoad';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -68,6 +69,11 @@ const MainLayout = ({ children }) => {
                   </Link>
                 </li>
                 <li className="nav-item">
+                  <Link to="/faculty-load" className="nav-link">
+                    Faculty Load
+                  </Link>
+                </li>
+                <li className="nav-item">
                   <Link to="/users" className="nav-link">
                     Users
                   </Link>
@@ -104,8 +110,8 @@ const MainLayout = ({ children }) => {
                   </Link>
                 </li>
                 <li className="nav-item">
-                  <Link to="/analytics" className="nav-link">
-                    Analytics
+                  <Link to="/faculty-load" className="nav-link">
+                    Faculty Load
                   </Link>
                 </li>
               </>
@@ -217,6 +223,12 @@ function App() {
             <Route path="/analytics" element={
               <ProtectedRoute roles={['ADMIN', 'HOD']}>
                 <MainLayout><Analytics /></MainLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/faculty-load" element={
+              <ProtectedRoute roles={['ADMIN', 'HOD']}>
+                <MainLayout><FacultyLoad /></MainLayout>
               </ProtectedRoute>
             } />
 

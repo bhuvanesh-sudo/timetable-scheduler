@@ -511,6 +511,42 @@ input:checked+.slider:before {
   color: var(--class-lab-text);
 }
 
+.class-block.elective-group-1 {
+  background: #fff7ed;
+  border-color: #fb923c;
+  color: #7c2d12;
+}
+
+.class-block.elective-group-2 {
+  background: #f0fdf4;
+  border-color: #4ade80;
+  color: #14532d;
+}
+
+.class-block.elective-group-3 {
+  background: #fff1f2;
+  border-color: #fb7185;
+  color: #881337;
+}
+
+.class-block.elective-group-4 {
+  background: #fdf4ff;
+  border-color: #e879f9;
+  color: #701a75;
+}
+
+.class-block.elective-group-5 {
+  background: #ecfeff;
+  border-color: #22d3ee;
+  color: #083344;
+}
+
+.class-block.elective-group-6 {
+  background: #fefce8;
+  border-color: #facc15;
+  color: #713f12;
+}
+
 .class-code {
   font-weight: 600;
   margin-bottom: 2px;

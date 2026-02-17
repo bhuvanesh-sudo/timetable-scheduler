@@ -159,24 +159,28 @@ class ConstraintValidator:
         
         return True, None
     
-    def validate_weekly_hours(self, teacher):
+    def validate_weekly_hours(self, teacher, planned_increment=1):
         """
-        Check if teacher has exceeded weekly hour limit.
+        Check if teacher has exceeded weekly hour limit (95%).
         
         Args:
             teacher: Teacher object
+            planned_increment: Number of hours being added in this block
         
         Returns:
             tuple: (is_valid, error_message)
         """
         current_hours = self.existing_entries.filter(teacher=teacher).count()
         
-        if current_hours >= teacher.max_hours_per_week:
-            return False, f"Teacher {teacher.teacher_name} has reached weekly limit of {teacher.max_hours_per_week} hours"
+        # Enforce 95% strict limit as requested
+        strict_limit = teacher.max_hours_per_week * 0.95
+        
+        if current_hours + planned_increment > strict_limit:
+            return False, f"Teacher {teacher.teacher_name} cannot exceed 95% workload ({current_hours}+{planned_increment}/{teacher.max_hours_per_week}h)"
         
         return True, None
     
-    def validate_all(self, section, course, teacher, room, timeslot, is_lab_session=False):
+    def validate_all(self, section, course, teacher, room, timeslot, is_lab_session=False, planned_increment=1):
         """
         Run all constraint validations for a proposed schedule entry.
         
@@ -187,6 +191,7 @@ class ConstraintValidator:
             room: Room object
             timeslot: TimeSlot object
             is_lab_session: Whether this is a lab/practical session
+            planned_increment: Number of hours being added in this block
         
         Returns:
             tuple: (is_valid, list_of_errors)
@@ -219,7 +224,7 @@ class ConstraintValidator:
             errors.append(error)
         
         # Check weekly hours
-        is_valid, error = self.validate_weekly_hours(teacher)
+        is_valid, error = self.validate_weekly_hours(teacher, planned_increment)
         if not is_valid:
             errors.append(error)
         

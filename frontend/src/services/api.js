@@ -169,6 +169,11 @@ export const schedulerAPI = {
   },
   validateSchedule: (scheduleId) => api.get(`/scheduler/validate/${scheduleId}/`),
   getElectiveAssignments: (scheduleId) => api.get(`/scheduler/elective-assignments/?schedule_id=${scheduleId}`),
+  getFacultySummary: (scheduleId = null) => {
+    let url = '/scheduler/faculty-summary/';
+    if (scheduleId) url += `?schedule_id=${scheduleId}`;
+    return api.get(url);
+  },
 };
 
 export const systemAPI = {
