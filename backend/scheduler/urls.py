@@ -15,4 +15,6 @@ urlpatterns = [
     path('timetable', views.get_timetable_view, name='timetable-view'),
     path('my-schedule', views.get_my_schedule, name='my-schedule'),
     path('validate/<int:schedule_id>/', views.validate_schedule, name='validate-schedule'),
+    path('validate-move', views.validate_move, name='validate-move'),
+    path('move-entry', views.move_entry, name='move-entry'),
 ]

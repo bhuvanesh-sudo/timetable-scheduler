@@ -394,6 +394,7 @@ class ScheduleEntry(models.Model):
     room = models.ForeignKey(Room, on_delete=models.CASCADE)
     timeslot = models.ForeignKey(TimeSlot, on_delete=models.CASCADE)
     is_lab_session = models.BooleanField(default=False)
+    last_modified = models.DateTimeField(auto_now=True, help_text="Tracks last modification for optimistic concurrency control")
     
     class Meta:
         db_table = 'schedule_entries'

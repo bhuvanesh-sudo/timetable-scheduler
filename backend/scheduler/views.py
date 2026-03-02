@@ -184,14 +184,17 @@ def get_timetable_view(request):
             timetable[day][slot_num] = []
         
         timetable[day][slot_num].append({
+            'entry_id': entry.id,
             'course_code': entry.course.course_id,
             'course_name': entry.course.course_name,
+            'teacher_id': entry.teacher.teacher_id,
             'teacher_name': entry.teacher.teacher_name,
             'room': entry.room.room_id,
             'section': entry.section.class_id,
             'is_lab_session': entry.is_lab_session,
             'start_time': entry.timeslot.start_time.strftime('%H:%M'),
             'end_time': entry.timeslot.end_time.strftime('%H:%M'),
+            'last_modified': entry.last_modified.isoformat(),
         })
     
     return Response(timetable)
@@ -348,3 +351,195 @@ def validate_schedule(request, schedule_id):
         "total_entries": entries.count(),
         "conflicts": conflicts,
     })
+
+
+@api_view(['GET'])
+@permission_classes([IsHODOrAdmin])
+def validate_move(request):
+    """
+    Real-time validation for a proposed drag-and-drop move.
+    Does NOT commit any changes — purely a conflict pre-check.
+
+    Query params:
+        entry_id    - ID of the ScheduleEntry being moved
+        target_day  - Target day (MON, TUE, WED, THU, FRI)
+        target_slot - Target slot number (1-8)
+
+    Returns:
+        { valid: bool, conflicts: [...] }
+    """
+    entry_id = request.query_params.get('entry_id')
+    target_day = request.query_params.get('target_day', '').upper()
+    target_slot = request.query_params.get('target_slot')
+
+    if not all([entry_id, target_day, target_slot]):
+        return Response(
+            {'error': 'entry_id, target_day, and target_slot are required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        entry = ScheduleEntry.objects.select_related(
+            'schedule', 'section', 'teacher', 'room', 'timeslot', 'course'
+        ).get(id=entry_id)
+    except ScheduleEntry.DoesNotExist:
+        return Response({'error': 'Entry not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        target_timeslot = TimeSlot.objects.get(day=target_day, slot_number=int(target_slot))
+    except TimeSlot.DoesNotExist:
+        return Response({'error': f'No timeslot for {target_day} slot {target_slot}'}, status=status.HTTP_404_NOT_FOUND)
+
+    schedule_id = entry.schedule_id
+    conflicts = []
+
+    # Exclude the entry itself when checking (it's being moved away)
+    other_entries = ScheduleEntry.objects.filter(
+        schedule_id=schedule_id, timeslot=target_timeslot
+    ).exclude(id=entry.id).select_related('teacher', 'room', 'section', 'course')
+
+    for other in other_entries:
+        # Teacher double-booking
+        if other.teacher_id == entry.teacher_id:
+            conflicts.append(
+                f"Teacher '{entry.teacher.teacher_name}' already has a class at "
+                f"{target_day} Slot {target_slot} ({other.course.course_id})"
+            )
+        # Room double-booking
+        if other.room_id == entry.room_id:
+            conflicts.append(
+                f"Room '{entry.room.room_id}' is already occupied at "
+                f"{target_day} Slot {target_slot} ({other.course.course_id})"
+            )
+        # Section double-booking
+        if other.section_id == entry.section_id:
+            conflicts.append(
+                f"Section '{entry.section.class_id}' already has a class at "
+                f"{target_day} Slot {target_slot} ({other.course.course_id})"
+            )
+
+    return Response({
+        'valid': len(conflicts) == 0,
+        'conflicts': conflicts,
+        'target_day': target_day,
+        'target_slot': int(target_slot),
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsHODOrAdmin])
+def move_entry(request):
+    """
+    Atomically move a ScheduleEntry to a new timeslot.
+    Uses optimistic locking via last_modified to prevent concurrent overwrites.
+
+    Body:
+        entry_id      - ID of the ScheduleEntry to move
+        target_day    - Target day (MON, TUE, WED, THU, FRI)
+        target_slot   - Target slot number (1-8)
+        last_modified - ISO timestamp of the entry's last_modified when the drag started
+
+    Returns:
+        200 OK with updated entry on success
+        409 Conflict if another admin already moved this entry
+        400/404 on validation/not-found errors
+    """
+    from django.db import transaction
+    from dateutil.parser import parse as parse_dt
+
+    entry_id = request.data.get('entry_id')
+    target_day = request.data.get('target_day', '').upper()
+    target_slot = request.data.get('target_slot')
+    client_last_modified = request.data.get('last_modified')
+
+    if not all([entry_id, target_day, target_slot, client_last_modified]):
+        return Response(
+            {'error': 'entry_id, target_day, target_slot, and last_modified are required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        with transaction.atomic():
+            # Lock the row while we work on it
+            entry = ScheduleEntry.objects.select_for_update().select_related(
+                'schedule', 'section', 'teacher', 'room', 'timeslot', 'course'
+            ).get(id=entry_id)
+
+            # Optimistic locking check — reject if someone else already moved it
+            server_ts = entry.last_modified.isoformat()
+            client_ts = parse_dt(client_last_modified).isoformat()
+            if server_ts != client_ts:
+                return Response(
+                    {
+                        'error': 'This entry was recently modified by another admin. Please refresh the timetable.',
+                        'conflict_type': 'CONCURRENT_EDIT',
+                    },
+                    status=status.HTTP_409_CONFLICT
+                )
+
+            target_timeslot = TimeSlot.objects.get(day=target_day, slot_number=int(target_slot))
+
+            # Conflict checks (same as validate_move)
+            conflict_list = []
+            other_entries = ScheduleEntry.objects.filter(
+                schedule_id=entry.schedule_id, timeslot=target_timeslot
+            ).exclude(id=entry.id).select_related('teacher', 'room', 'section', 'course')
+
+            for other in other_entries:
+                if other.teacher_id == entry.teacher_id:
+                    conflict_list.append(
+                        f"Teacher '{entry.teacher.teacher_name}' already has a class at "
+                        f"{target_day} Slot {target_slot}"
+                    )
+                if other.room_id == entry.room_id:
+                    conflict_list.append(
+                        f"Room '{entry.room.room_id}' is already occupied at "
+                        f"{target_day} Slot {target_slot}"
+                    )
+                if other.section_id == entry.section_id:
+                    conflict_list.append(
+                        f"Section '{entry.section.class_id}' already has a class at "
+                        f"{target_day} Slot {target_slot}"
+                    )
+
+            if conflict_list:
+                return Response(
+                    {'error': 'Move rejected due to scheduling conflicts', 'conflicts': conflict_list},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Apply the move
+            old_slot = f"{entry.timeslot.day} Slot {entry.timeslot.slot_number}"
+            entry.timeslot = target_timeslot
+            entry.save()  # auto_now=True on last_modified updates the timestamp
+
+            # Write to audit log
+            from core.models import AuditLog
+            AuditLog.objects.using('audit_db').create(
+                user_name=request.user.username,
+                action='UPDATE',
+                model_name='ScheduleEntry',
+                object_id=str(entry.id),
+                details={
+                    'action': 'drag_move',
+                    'course': entry.course.course_id,
+                    'section': entry.section.class_id,
+                    'from': old_slot,
+                    'to': f"{target_day} Slot {target_slot}",
+                },
+            )
+
+            from core.serializers import ScheduleEntrySerializer
+            serializer = ScheduleEntrySerializer(entry)
+            return Response({'success': True, 'entry': serializer.data})
+
+    except ScheduleEntry.DoesNotExist:
+        return Response({'error': 'Entry not found'}, status=status.HTTP_404_NOT_FOUND)
+    except TimeSlot.DoesNotExist:
+        return Response(
+            {'error': f'No timeslot found for {target_day} slot {target_slot}'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+

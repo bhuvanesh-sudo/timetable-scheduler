@@ -181,7 +181,7 @@ class ScheduleEntrySerializer(serializers.ModelSerializer):
             'teacher', 'teacher_name',
             'room', 'room_name', 'room_type',
             'timeslot', 'day', 'slot_number', 'start_time', 'end_time',
-            'is_lab_session'
+            'is_lab_session', 'last_modified'
         ]
 
 
