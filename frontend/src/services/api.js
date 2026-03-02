@@ -160,6 +160,9 @@ export const schedulerAPI = {
     return api.get(url);
   },
   validateSchedule: (scheduleId) => api.get(`/scheduler/validate/${scheduleId}/`),
+  validateMove: (entryId, targetDay, targetSlot) =>
+    api.get(`/scheduler/validate-move?entry_id=${entryId}&target_day=${targetDay}&target_slot=${targetSlot}`),
+  moveEntry: (data) => api.post('/scheduler/move-entry', data),
 };
 
 // System Health & Backup APIs

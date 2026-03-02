@@ -497,13 +497,33 @@ input:checked+.slider:before {
   box-shadow: var(--shadow-sm);
   border: none;
   border-top: 4px solid;
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
   font-size: 0.75rem;
 }
 
 .class-block:hover {
   transform: scale(1.02);
   z-index: 10;
+}
+
+/* When a drag is active, prevent other blocks from scaling on hover */
+.timetable-grid.is-dragging .class-block:hover {
+  transform: none;
+}
+
+.class-block[draggable='true'] {
+  cursor: grab;
+}
+
+.class-block[draggable='true']:active {
+  cursor: grabbing;
+}
+
+/* Ghost block while actively being dragged */
+.class-block.is-dragging-source {
+  opacity: 0.35;
+  transform: scale(0.95);
+  box-shadow: none;
 }
 
 .class-block.theory {
@@ -543,6 +563,24 @@ input:checked+.slider:before {
 .class-room {
   color: var(--text-muted);
   font-size: 0.7rem;
+}
+
+/* === DROP ZONE STATES === */
+.grid-cell.drop-valid {
+  outline: 2px solid #10b981;
+  background: rgba(16, 185, 129, 0.12);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+}
+
+.grid-cell.drop-invalid {
+  outline: 2px solid #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.25);
+}
+
+.grid-cell.drop-pending {
+  outline: 2px dashed #94a3b8;
+  background: rgba(148, 163, 184, 0.15);
 }
 
 /* === FILTERS === */
@@ -713,24 +751,45 @@ input:checked+.slider:before {
   padding: var(--spacing-md);
   border-radius: var(--radius-md);
   margin-bottom: var(--spacing-md);
+  font-weight: 500;
 }
 
+/* === ALERT VARIANTS — light mode === */
 .alert-success {
   background: #d1fae5;
-  color: #065f46;
+  color: #064e3b;
   border: 1px solid #6ee7b7;
 }
 
 .alert-error {
   background: #fee2e2;
-  color: #991b1b;
+  color: #7f1d1d;
   border: 1px solid #fca5a5;
 }
 
 .alert-info {
   background: #dbeafe;
-  color: #1e40af;
+  color: #1e3a8a;
   border: 1px solid #93c5fd;
+}
+
+/* === ALERT VARIANTS — dark mode === */
+[data-theme='dark'] .alert-success {
+  background: rgba(16, 185, 129, 0.15);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+[data-theme='dark'] .alert-error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+[data-theme='dark'] .alert-info {
+  background: rgba(59, 130, 246, 0.15);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.4);
 }
 
 /* === RESPONSIVE === */
