@@ -11,7 +11,8 @@ Sprint: 1
 from rest_framework import serializers
 from .models import (
     Teacher, Course, Room, TimeSlot, Section,
-    TeacherCourseMapping, Schedule, ScheduleEntry, Constraint, ConflictLog, AuditLog, ChangeRequest
+    TeacherCourseMapping, Schedule, ScheduleEntry, Constraint, ConflictLog, AuditLog, ChangeRequest,
+    Notification
 )
 
 
@@ -235,3 +236,14 @@ class TimetableViewSerializer(serializers.Serializer):
     start_time = serializers.TimeField()
     end_time = serializers.TimeField()
     classes = ScheduleEntrySerializer(many=True)
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Notification model.
+    Handles in-app notifications for timetable changes.
+    """
+    class Meta:
+        model = Notification
+        fields = ['id', 'recipient', 'schedule', 'title', 'message', 'is_read', 'created_at']
+        read_only_fields = ['id', 'recipient', 'schedule', 'title', 'message', 'created_at']

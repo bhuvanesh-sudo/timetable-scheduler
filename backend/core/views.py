@@ -16,13 +16,14 @@ from django.utils import timezone
 from .models import (
     Teacher, Course, Room, TimeSlot, Section,
     TeacherCourseMapping, Schedule, ScheduleEntry,
-    Constraint, ConflictLog, ChangeRequest
+    Constraint, ConflictLog, ChangeRequest, Notification
 )
 from .serializers import (
     TeacherSerializer, CourseSerializer, RoomSerializer,
     TimeSlotSerializer, SectionSerializer, TeacherCourseMappingSerializer,
     ScheduleSerializer, ScheduleDetailSerializer, ScheduleEntrySerializer,
-    ConstraintSerializer, ConflictLogSerializer, ChangeRequestSerializer
+    ConstraintSerializer, ConflictLogSerializer, ChangeRequestSerializer,
+    NotificationSerializer
 )
 from accounts.permissions import IsAdmin, IsHODOrAdmin, IsFacultyOrAbove
 
@@ -411,3 +412,40 @@ class ChangeRequestViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(change_request)
         return Response(serializer.data)
+
+
+class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    API endpoint for in-app notifications.
+    Users can only see their own notifications.
+    """
+    serializer_class = NotificationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = None
+
+    def get_queryset(self):
+        return Notification.objects.filter(recipient=self.request.user)
+
+    @action(detail=True, methods=['post'])
+    def mark_read(self, request, pk=None):
+        """Mark a single notification as read."""
+        notification = self.get_object()
+        notification.is_read = True
+        notification.save()
+        return Response({'status': 'marked as read'})
+
+    @action(detail=False, methods=['post'])
+    def mark_all_read(self, request):
+        """Mark all of the user's notifications as read."""
+        count = Notification.objects.filter(
+            recipient=request.user, is_read=False
+        ).update(is_read=True)
+        return Response({'status': 'all marked as read', 'count': count})
+
+    @action(detail=False, methods=['get'])
+    def unread_count(self, request):
+        """Get the count of unread notifications for badge display."""
+        count = Notification.objects.filter(
+            recipient=request.user, is_read=False
+        ).count()
+        return Response({'count': count})

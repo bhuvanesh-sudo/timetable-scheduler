@@ -51,6 +51,9 @@ function ViewTimetable() {
     const [showVerificationModal, setShowVerificationModal] = useState(false);
     const [verifying, setVerifying] = useState(false);
 
+    // ── Publish state ──
+    const [publishing, setPublishing] = useState(false);
+
     // ── Drag-and-drop state ──
     const [dragging, setDragging] = useState(null);          // { entryId, day, slot, lastModified, classItem }
     const [dropTargets, setDropTargets] = useState({});      // { "DAY-SLOT": { valid: bool|null, conflicts: [] } }
@@ -130,6 +133,33 @@ function ViewTimetable() {
             setVerifying(false);
         }
     };
+
+    // ── Publish ──
+    const handlePublishSchedule = async () => {
+        if (!selectedSchedule) return;
+        const scheduleName = schedules.find(s => s.schedule_id == selectedSchedule)?.name || 'this schedule';
+        if (!window.confirm(`Publish "${scheduleName}"? This will notify all teachers whose timetable has changed.`)) return;
+
+        setPublishing(true);
+        try {
+            const response = await schedulerAPI.publish(selectedSchedule);
+            setMoveStatus({
+                type: 'success',
+                message: response.data.message || 'Schedule published successfully!',
+            });
+            // Refresh schedule list to update statuses
+            const schedulesRes = await scheduleAPI.getAll();
+            setSchedules(schedulesRes.data.results || schedulesRes.data || []);
+        } catch (error) {
+            const errMsg = error.response?.data?.error || 'Failed to publish schedule';
+            setMoveStatus({ type: 'error', message: errMsg });
+        } finally {
+            setPublishing(false);
+        }
+    };
+
+    const selectedScheduleObj = schedules.find(s => s.schedule_id == selectedSchedule);
+    const isPublished = selectedScheduleObj?.status === 'PUBLISHED';
 
     // ── PDF ──
     const handleDownloadPDF = () => {
@@ -454,6 +484,23 @@ function ViewTimetable() {
                                 >
                                     Delete Schedule
                                 </button>
+                                {user?.role === 'ADMIN' && (
+                                    <button
+                                        className="btn"
+                                        onClick={handlePublishSchedule}
+                                        disabled={publishing || isPublished}
+                                        style={{
+                                            flex: 1,
+                                            background: isPublished ? 'var(--text-muted)' : 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                                            color: '#fff',
+                                            border: 'none',
+                                            cursor: isPublished ? 'not-allowed' : 'pointer',
+                                            fontWeight: 600,
+                                        }}
+                                    >
+                                        {publishing ? 'Publishing...' : isPublished ? '✓ Published' : '🚀 Publish Schedule'}
+                                    </button>
+                                )}
                             </div>
                         )}
                     </div>

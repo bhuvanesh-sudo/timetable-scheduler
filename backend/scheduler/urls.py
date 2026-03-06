@@ -17,4 +17,5 @@ urlpatterns = [
     path('validate/<int:schedule_id>/', views.validate_schedule, name='validate-schedule'),
     path('validate-move', views.validate_move, name='validate-move'),
     path('move-entry', views.move_entry, name='move-entry'),
+    path('publish/<int:schedule_id>/', views.publish_schedule, name='publish-schedule'),
 ]

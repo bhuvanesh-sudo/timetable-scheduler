@@ -21,6 +21,7 @@ import Login from './pages/Login';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import NotificationBell from './components/NotificationBell';
 
 // Layout component for authenticated pages
 const MainLayout = ({ children }) => {
@@ -144,11 +145,12 @@ const MainLayout = ({ children }) => {
       {/* Main Content Area */}
       <main className="main-content">
         <header className="top-bar">
-          <div style={{ textAlign: 'right' }}>
-            <div className="user-welcome">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px' }}>
+            <div className="user-welcome" style={{ marginRight: '4px' }}>
               Welcome, {user?.username} ({user?.role})
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
+            <NotificationBell />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>
                 {theme === 'light' ? 'Light' : 'Dark'}
               </span>

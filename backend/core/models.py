@@ -350,6 +350,7 @@ class Schedule(models.Model):
         ('PENDING', 'Pending'),
         ('GENERATING', 'Generating'),
         ('COMPLETED', 'Completed'),
+        ('PUBLISHED', 'Published'),
         ('FAILED', 'Failed'),
     ]
     
@@ -473,3 +474,38 @@ class ConflictLog(models.Model):
     
     def __str__(self):
         return f"{self.conflict_type} - {self.severity} ({self.schedule.schedule_id})"
+
+
+class Notification(models.Model):
+    """
+    In-app notification for teachers about timetable changes.
+    
+    Created when an admin publishes a schedule, notifying each teacher
+    whose timetable assignments have changed compared to the previously
+    published schedule.
+    """
+    recipient = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='notifications',
+        help_text="User who receives this notification"
+    )
+    schedule = models.ForeignKey(
+        Schedule,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='notifications',
+        help_text="Schedule related to this notification"
+    )
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'notifications'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.title} -> {self.recipient.username} ({'Read' if self.is_read else 'Unread'})"

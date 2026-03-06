@@ -543,3 +543,159 @@ def move_entry(request):
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+@api_view(['POST'])
+@permission_classes([IsHODOrAdmin])
+def publish_schedule(request, schedule_id):
+    """
+    Publish a completed schedule and notify affected teachers.
+
+    1. Sets the schedule status to PUBLISHED.
+    2. Finds the previously published schedule (if any).
+    3. Compares entries per teacher between old and new schedule.
+    4. Creates Notification records for each teacher whose assignments changed.
+    5. Logs the action in AuditLog.
+    """
+    from core.models import AuditLog, Notification, User
+
+    try:
+        schedule = Schedule.objects.get(schedule_id=schedule_id)
+    except Schedule.DoesNotExist:
+        return Response(
+            {"error": "Schedule not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    if schedule.status not in ('COMPLETED', 'PUBLISHED'):
+        return Response(
+            {"error": f"Cannot publish a schedule with status '{schedule.status}'. Only COMPLETED schedules can be published."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Find the previously published schedule (excluding the current one)
+    previous_schedule = (
+        Schedule.objects.filter(status='PUBLISHED')
+        .exclude(schedule_id=schedule_id)
+        .order_by('-completed_at', '-created_at')
+        .first()
+    )
+
+    # Mark any previously published schedule as COMPLETED (only one published at a time)
+    if previous_schedule:
+        previous_schedule.status = 'COMPLETED'
+        previous_schedule.save()
+
+    # Set the new schedule as PUBLISHED
+    schedule.status = 'PUBLISHED'
+    schedule.save()
+
+    # --- Change detection & notification creation ---
+    new_entries = ScheduleEntry.objects.filter(
+        schedule=schedule
+    ).select_related('course', 'teacher', 'room', 'timeslot', 'section')
+
+    # Build a dict of teacher_id -> set of entry tuples for the NEW schedule
+    def build_teacher_entries_map(entries):
+        """Build {teacher_id: set of (day, slot, course_id, room_id, section_id)} tuples."""
+        teacher_map = {}
+        for entry in entries:
+            key = (
+                entry.timeslot.day,
+                entry.timeslot.slot_number,
+                entry.course.course_id,
+                entry.room.room_id,
+                entry.section.class_id,
+                entry.is_lab_session,
+            )
+            teacher_map.setdefault(entry.teacher.teacher_id, set()).add(key)
+        return teacher_map
+
+    new_map = build_teacher_entries_map(new_entries)
+    notifications_created = 0
+
+    if previous_schedule:
+        # Compare against old schedule
+        old_entries = ScheduleEntry.objects.filter(
+            schedule=previous_schedule
+        ).select_related('course', 'teacher', 'room', 'timeslot', 'section')
+        old_map = build_teacher_entries_map(old_entries)
+
+        # Find all teachers in either old or new schedule
+        all_teacher_ids = set(new_map.keys()) | set(old_map.keys())
+
+        for teacher_id in all_teacher_ids:
+            old_set = old_map.get(teacher_id, set())
+            new_set = new_map.get(teacher_id, set())
+
+            if old_set != new_set:
+                # This teacher's schedule changed — find their User account
+                users = User.objects.filter(teacher__teacher_id=teacher_id)
+                if not users.exists():
+                    continue
+
+                # Build change summary
+                added = new_set - old_set
+                removed = old_set - new_set
+
+                day_names = {'MON': 'Monday', 'TUE': 'Tuesday', 'WED': 'Wednesday', 'THU': 'Thursday', 'FRI': 'Friday'}
+                changes = []
+                if added:
+                    for day, slot, course, room, section, is_lab in sorted(added):
+                        session_type = "Lab" if is_lab else "Lecture"
+                        changes.append(f"+ {day_names.get(day, day)} Slot {slot}: {course} ({session_type}) in {room} for {section}")
+                if removed:
+                    for day, slot, course, room, section, is_lab in sorted(removed):
+                        session_type = "Lab" if is_lab else "Lecture"
+                        changes.append(f"- {day_names.get(day, day)} Slot {slot}: {course} ({session_type}) in {room} for {section}")
+
+                message = "Changes to your timetable:\n" + "\n".join(changes)
+
+                for user in users:
+                    Notification.objects.create(
+                        recipient=user,
+                        schedule=schedule,
+                        title=f"Timetable Updated: {schedule.name}",
+                        message=message,
+                    )
+                    notifications_created += 1
+    else:
+        # First publish — notify all teachers in the schedule
+        for teacher_id in new_map.keys():
+            users = User.objects.filter(teacher__teacher_id=teacher_id)
+            for user in users:
+                entries_summary = []
+                day_names = {'MON': 'Monday', 'TUE': 'Tuesday', 'WED': 'Wednesday', 'THU': 'Thursday', 'FRI': 'Friday'}
+                for day, slot, course, room, section, is_lab in sorted(new_map[teacher_id]):
+                    session_type = "Lab" if is_lab else "Lecture"
+                    entries_summary.append(f"• {day_names.get(day, day)} Slot {slot}: {course} ({session_type}) in {room} for {section}")
+
+                message = "Your timetable has been published:\n" + "\n".join(entries_summary)
+                Notification.objects.create(
+                    recipient=user,
+                    schedule=schedule,
+                    title=f"New Timetable Published: {schedule.name}",
+                    message=message,
+                )
+                notifications_created += 1
+
+    # Audit log
+    AuditLog.objects.using('audit_db').create(
+        user_name=request.user.username,
+        action='UPDATE',
+        model_name='Schedule',
+        object_id=str(schedule.schedule_id),
+        details={
+            'action': 'publish',
+            'schedule_name': schedule.name,
+            'notifications_sent': notifications_created,
+            'had_previous': previous_schedule is not None,
+        },
+    )
+
+    return Response({
+        "status": "published",
+        "schedule_id": schedule.schedule_id,
+        "notifications_sent": notifications_created,
+        "message": f"Schedule '{schedule.name}' published successfully. {notifications_created} teacher(s) notified.",
+    })
+
