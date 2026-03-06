@@ -159,6 +159,21 @@ export const schedulerAPI = {
     if (teacher) url += `&teacher=${teacher}`;
     return api.get(url);
   },
+  validateSchedule: (scheduleId) => api.get(`/scheduler/validate/${scheduleId}/`),
+  validateMove: (entryId, targetDay, targetSlot) =>
+    api.get(`/scheduler/validate-move?entry_id=${entryId}&target_day=${targetDay}&target_slot=${targetSlot}`),
+  moveEntry: (data) => api.post('/scheduler/move-entry', data),
+  publish: (scheduleId) => api.post(`/scheduler/publish/${scheduleId}/`),
+};
+
+// System Health & Backup APIs
+export const systemAPI = {
+  getInfo: () => api.get('/system/info/'),
+  listBackups: () => api.get('/system/backups/'),
+  createBackup: (label = '') => api.post('/system/backups/create/', { label }),
+  restoreBackup: (filename) => api.post(`/system/restore/${filename}/`),
+  deleteBackup: (filename) => api.delete(`/system/backups/${filename}/`),
+  resetSemester: (data) => api.post('/system/reset-semester/', data),
 };
 
 export const auditLogAPI = {
@@ -177,6 +192,13 @@ export const changeRequestAPI = {
   create: (data) => api.post('/change-requests/', data),
   approve: (id, admin_notes = '') => api.post(`/change-requests/${id}/approve/`, { admin_notes }),
   reject: (id, admin_notes = '') => api.post(`/change-requests/${id}/reject/`, { admin_notes }),
+};
+
+export const notificationAPI = {
+  getAll: () => api.get('/notifications/'),
+  markRead: (id) => api.post(`/notifications/${id}/mark_read/`),
+  markAllRead: () => api.post('/notifications/mark_all_read/'),
+  getUnreadCount: () => api.get('/notifications/unread_count/'),
 };
 
 export default api;

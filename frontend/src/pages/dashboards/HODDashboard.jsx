@@ -72,20 +72,20 @@ function HODDashboard() {
                 </div>
             </div>
 
-            <div className="actions-section" style={{ marginTop: '2rem' }}>
-                <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', color: 'var(--text-primary)' }}>Department Actions</h2>
-                <div className="actions-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+            <div className="actions-section">
+                <h2 className="actions-header">Department Actions</h2>
+                <div className="actions-grid">
                     <Link to="/data" className="action-card">
-                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary)' }}>Manage Faculty</h3>
-                        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>View and edit faculty details.</p>
+                        <h3>Manage Faculty</h3>
+                        <p>View and edit faculty details.</p>
                     </Link>
                     <Link to="/timetable" className="action-card">
-                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary)' }}>Dept Timetable</h3>
-                        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>View generated schedules for {user.department}.</p>
+                        <h3>Dept Timetable</h3>
+                        <p>View generated schedules for {user.department}.</p>
                     </Link>
                     <Link to="/analytics" className="action-card">
-                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary)' }}>Workload Reports</h3>
-                        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Check faculty workload distribution.</p>
+                        <h3>Workload Reports</h3>
+                        <p>Check faculty workload distribution.</p>
                     </Link>
                 </div>
             </div>

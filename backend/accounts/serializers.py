@@ -8,7 +8,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'role', 'department', 'phone', 'teacher_id']
+        fields = ['id', 'username', 'user_id', 'email', 'first_name', 'last_name', 'role', 'department', 'phone', 'teacher_id']
         read_only_fields = ['role', 'department']  # Regular users can't change their role
     
     def get_teacher_id(self, obj):
@@ -34,6 +34,6 @@ class UserManagementSerializer(serializers.ModelSerializer):
     """Serializer for Admin to manage users"""
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'role', 'department', 'phone', 'is_active', 'is_protected']
+        fields = ['id', 'username', 'user_id', 'email', 'first_name', 'last_name', 'role', 'department', 'phone', 'is_active', 'is_protected']
         read_only_fields = ['is_protected'] # Protected status can only be set via database/superuser? Or Admin can set it? Let's generic admin set it? Maybe not.
 

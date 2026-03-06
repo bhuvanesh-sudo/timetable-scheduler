@@ -30,6 +30,7 @@ class User(AbstractUser):
     ]
     
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='FACULTY')
+    user_id = models.CharField(max_length=50, unique=True, null=True, blank=True)
     department = models.CharField(max_length=50, blank=True)
     phone = models.CharField(max_length=15, blank=True)
     is_protected = models.BooleanField(default=False)
@@ -49,6 +50,7 @@ class User(AbstractUser):
 class AuditLog(models.Model):
     """
     Track critical system changes for accountability.
+    Stored in a separate database (audit_db) to survive backup/restore.
     """
     ACTION_CHOICES = [
         ('CREATE', 'Created'),
@@ -57,9 +59,11 @@ class AuditLog(models.Model):
         ('LOGIN', 'Logged In'),
         ('LOGOUT', 'Logged Out'),
         ('GENERATE', 'Generated Schedule'),
+        ('BACKUP', 'Backup Created'),
+        ('RESTORE', 'Database Restored'),
     ]
     
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    user_name = models.CharField(max_length=150, blank=True, null=True)
     action = models.CharField(max_length=20, choices=ACTION_CHOICES)
     model_name = models.CharField(max_length=50)
     object_id = models.CharField(max_length=100, blank=True, null=True)
@@ -209,6 +213,8 @@ class Course(models.Model):
     credits = models.IntegerField(validators=[MinValueValidator(0)])
     is_lab = models.BooleanField(default=False)
     is_elective = models.BooleanField(default=False)
+    elective_type = models.CharField(max_length=100, null=True, blank=True)
+    is_project = models.BooleanField(default=False)
     weekly_slots = models.IntegerField(validators=[MinValueValidator(0)])
     
     class Meta:
@@ -238,6 +244,7 @@ class Room(models.Model):
     block = models.CharField(max_length=10)
     floor = models.IntegerField(validators=[MinValueValidator(1)])
     room_type = models.CharField(max_length=20, choices=ROOM_TYPES)
+    capacity = models.IntegerField(default=60, null=True, blank=True, validators=[MinValueValidator(1)])
     
     class Meta:
         db_table = 'rooms'
@@ -245,6 +252,27 @@ class Room(models.Model):
     
     def __str__(self):
         return f"{self.room_id} ({self.room_type})"
+
+
+class WalkingTime(models.Model):
+    """
+    Defines the walking time between two academic blocks.
+    
+    Attributes:
+        source_block: Starting block (e.g., A)
+        target_block: Destination block (e.g., B)
+        minutes: Time it takes to walk in minutes
+    """
+    source_block = models.CharField(max_length=10)
+    target_block = models.CharField(max_length=10)
+    minutes = models.IntegerField(validators=[MinValueValidator(0)])
+    
+    class Meta:
+        db_table = "walking_times"
+        unique_together = ["source_block", "target_block"]
+        
+    def __str__(self):
+        return f"{self.source_block} to {self.target_block}: {self.minutes}m"
 
 
 class TimeSlot(models.Model):
@@ -268,7 +296,7 @@ class TimeSlot(models.Model):
     
     slot_id = models.CharField(max_length=10, unique=True, primary_key=True)
     day = models.CharField(max_length=3, choices=DAYS)
-    slot_number = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(8)])
+    slot_number = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(10)])
     start_time = models.TimeField()
     end_time = models.TimeField()
     
@@ -313,17 +341,33 @@ class TeacherCourseMapping(models.Model):
         course: Foreign key to Course model
         preference_level: Teacher's preference for teaching this course (1-5)
     """
-    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name='course_mappings')
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='teacher_mappings')
+    teacher = models.ForeignKey(
+        Teacher, on_delete=models.CASCADE, related_name="course_mappings"
+    )
+    course = models.ForeignKey(
+        Course, on_delete=models.CASCADE, related_name="teacher_mappings"
+    )
+    section = models.ForeignKey(
+        Section, on_delete=models.CASCADE, null=True, blank=True, related_name="teacher_mappings"
+    )
+    year = models.IntegerField(null=True, blank=True)
     preference_level = models.IntegerField(
         default=3,
         validators=[MinValueValidator(1), MaxValueValidator(5)],
-        help_text="1=Low, 5=High preference"
+        help_text="1=Low, 5=High preference",
     )
-    
+    domain_id = models.IntegerField(
+        null=True, blank=True,
+        help_text="Domain number from mappingop/mappingep (e.g. 1=Cyber Security)",
+    )
+    domain_name = models.CharField(
+        max_length=100, null=True, blank=True,
+        help_text="Domain name (e.g. 'Cyber Security', 'Data Science')",
+    )
+
     class Meta:
-        db_table = 'teacher_course_mapping'
-        unique_together = ['teacher', 'course']
+        db_table = "teacher_course_mapping"
+        unique_together = ["teacher", "course", "section", "year"]
     
     def __str__(self):
         return f"{self.teacher.teacher_id} -> {self.course.course_id}"
@@ -347,20 +391,30 @@ class Schedule(models.Model):
         ('PENDING', 'Pending'),
         ('GENERATING', 'Generating'),
         ('COMPLETED', 'Completed'),
+        ('PUBLISHED', 'Published'),
         ('FAILED', 'Failed'),
     ]
     
     schedule_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=200)
-    semester = models.CharField(max_length=10, choices=[('odd', 'Odd'), ('even', 'Even')])
+    version = models.IntegerField(default=1)
+    is_draft = models.BooleanField(default=True)
+    semester = models.CharField(
+        max_length=10, choices=[("odd", "Odd"), ("even", "Even")]
+    )
     year = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(4)])
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING")
     created_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     quality_score = models.FloatField(
         null=True,
         blank=True,
         validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+    published_snapshot = models.JSONField(
+        null=True, 
+        blank=True, 
+        help_text="Snapshot of the schedule layout when it was published. Used to detect changes even if underlying entries are deleted."
     )
     
     class Meta:
@@ -384,20 +438,30 @@ class ScheduleEntry(models.Model):
         timeslot: Foreign key to TimeSlot
         is_lab_session: Boolean indicating if this is a lab session
     """
-    schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE, related_name='entries')
+    schedule = models.ForeignKey(
+        Schedule, on_delete=models.CASCADE, related_name="entries"
+    )
     section = models.ForeignKey(Section, on_delete=models.CASCADE)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
     room = models.ForeignKey(Room, on_delete=models.CASCADE)
     timeslot = models.ForeignKey(TimeSlot, on_delete=models.CASCADE)
     is_lab_session = models.BooleanField(default=False)
-    
+    constraint_reason = models.CharField(
+        max_length=300,
+        blank=True,
+        null=True,
+        help_text="Short explanation of why the AI placed this class here (for Explainability Tooltips)",
+    )
+    last_modified = models.DateTimeField(
+        auto_now=True,
+        help_text="Tracks last modification for optimistic concurrency control",
+    )
+
     class Meta:
-        db_table = 'schedule_entries'
+        db_table = "schedule_entries"
         unique_together = [
-            ['schedule', 'section', 'timeslot'],  # Section can't have two classes at same time
-            ['schedule', 'teacher', 'timeslot'],  # Teacher can't teach two classes at same time
-            ['schedule', 'room', 'timeslot'],     # Room can't be used twice at same time
+            ["schedule", "section", "timeslot"],  # Section can't have two classes at same time
         ]
     
     def __str__(self):
@@ -469,3 +533,38 @@ class ConflictLog(models.Model):
     
     def __str__(self):
         return f"{self.conflict_type} - {self.severity} ({self.schedule.schedule_id})"
+
+
+class Notification(models.Model):
+    """
+    In-app notification for teachers about timetable changes.
+    
+    Created when an admin publishes a schedule, notifying each teacher
+    whose timetable assignments have changed compared to the previously
+    published schedule.
+    """
+    recipient = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='notifications',
+        help_text="User who receives this notification"
+    )
+    schedule = models.ForeignKey(
+        Schedule,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='notifications',
+        help_text="Schedule related to this notification"
+    )
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'notifications'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.title} -> {self.recipient.username} ({'Read' if self.is_read else 'Unread'})"

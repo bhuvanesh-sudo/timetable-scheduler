@@ -1,0 +1,86 @@
+class_id,year,semester_type,course_id,course_name,teacher_id,teacher_name
+CSE2,2,ODD,22ADM201,Strategic Lessons from Mahabharatha,T013,Baskar A
+CSE2,2,ODD,22AVP210,Kerala Mural Art and Painting,T014,Bharathi D
+CSE2,2,ODD,22AVP212,Introduction to Traditional Indian Systems of Medicine,T015,Bindu K R
+CSE2,2,ODD,22AVP204,Lessons from the Upanishads,T016,C.Shunmuga Velayutham
+CSE2,2,ODD,22AVP206,Life and Message of Swami Vivekananda,T017,Dayanand V
+CSE2,2,ODD,22AVP208,Insights into Indian Arts and Literature,T018,Deepika T
+CSE2,2,ODD,22AVP214,Principles of Worship in India,T019,Dhanya M Dhanalakshmy
+CSE2,2,ODD,22AVP218,Insights into Indian Classical Music,T020,Dhanya N M
+CSE2,2,ODD,22AVP220,Insights into Indian Classical Dance,T021,Divya M
+CSE2,2,ODD,22AVP209,Yoga and Meditation,T022,C.Bagavathi
+CSE4,4,ODD,23CUL231,Excellence in Daily Life,T023,Ganesh Neelakanta Iyer
+CSE4,4,ODD,23CUL233,Yoga Psychology,T024,KARTHI R
+CSE4,4,ODD,23ENG231,Indian Thought through English,T025,Krishan Kumar
+CSE4,4,ODD,23ENG233,Technical Communication,T026,PRIYANKA KUMAR
+CSE4,4,ODD,23FRE230,Proficiency in French Language (Lower),T027,SABARINATH SUBRAMANIAM
+CSE4,4,ODD,23GER230,German for Beginners I,T028,Gangadharan K
+CSE4,4,ODD,23GER232,Proficiency in German Language (Lower),T029,Gayathri V
+CSE4,4,ODD,23HIN230,Hindi I,T030,Geethu Mohan
+CSE4,4,ODD,23HUM230,Emotional Intelligence,T031,Govindarajan J
+CSE4,4,ODD,23HUM232,Glimpses of Eternal India,T032,Harini N
+CSE4,4,ODD,23HUM234,Health and Lifestyle,T033,Hema P Menon
+CSE4,4,ODD,23HUM236,Introduction to India Studies,T034,Jevitha K P
+CSE4,4,ODD,23HUM238,National Service Scheme,T035,Jeyakumar G
+CSE4,4,ODD,23HUM240,Psychology for Engineers,T036,Kamalaveni V
+CSE4,4,ODD,23HUM242,The Message of Bhagwat Gita,T037,Lalithamani N
+CSE4,4,ODD,23HUM244,Understanding Science of Food and Nutrition,T038,Latha Parameswaran
+CSE4,4,ODD,23JAP230,Proficiency in Japanese Language (Lower),T039,Malathi P
+CSE4,4,ODD,23KAN230,Kannada I,T040,Manjusha R
+CSE4,4,ODD,23MAL230,Malayalam I,T041,Manu Madhavan
+CSE4,4,ODD,23SAN230,Sanskrit I,T042,Venkadeshan R
+CSE4,4,ODD,23SWK230,Corporate Social Responsibility,T043,Lavanya G
+CSE4,4,ODD,23TAM230,Tamil I,T044,Nalinadevi K
+CSE4,4,ODD,23MNG331,Financial Management,T045,Neethu MR
+CSE4,4,ODD,23MNG333,Marketing Management,T046,Padmavathi S
+CSE4,4,ODD,23MNG335,Enterprise Management,T047,Parambalath Narendra Kumar
+CSE4,4,ODD,23MEE321,Industrial Engineering,T048,Prakash P
+CSE4,4,ODD,23MEE323,Total Quality Management,T049,Prashant R Nair
+CSE4,4,ODD,23CSE321,Software Project Management,T050,Prathilothamai M
+CSE4,4,ODD,23CSE323,Engineering Economic Analysis,T051,Radhika G
+CSE3,3,ODD,23CSE451,Graph Mining,T052,Radhika N
+CSE3,3,ODD,23CSE452,Business Analytics,T053,Raghesh Krishnan K
+CSE4,4,ODD,23CSE454,Concurrent Programming,T054,Rajathilagam B
+CSE4,4,ODD,23CSE455,Design Patterns,T055,Ramya GR
+CSE4,4,ODD,23CSE456,Domain Specific Languages,T056,Ramya U M
+CSE3,3,ODD,23CSE457,Elements of Computing,T057,Rimjhim Padam Singh
+CSE3,3,ODD,23CSE458,Embedded Programming,T058,Ritwik M
+CSE4,4,ODD,23CSE460,Features in Modern Programming Languages,T059,Sabarish BA
+CSE4,4,ODD,23CSE461,Full Stack Frameworks,T060,Saravanan S
+CSE4,4,ODD,23CSE462,Multimedia Communication Systems,T061,Sathiya R R
+CSE3,3,ODD,23CSE463,Quantum Computing,T062,Sathya S
+CSE3,3,ODD,23CSE464,Formal Verification,T063,Selvi C
+CSE4,4,ODD,23CSE466,Parallel Programming,T064,Senthil Kumar T
+CSE4,4,ODD,23CSE331,Cryptography,T065,Senthilkumar M
+CSE4,4,ODD,23CSE332,Information Security,T066,Shanmuga Priya S
+CSE3,3,ODD,23CSE333,Secure Coding,T067,Shivapratap Gopakumar
+CSE3,3,ODD,23CSE334,Cyber Forensics and Malware,T068,Shriram K V
+CSE4,4,ODD,23CSE336,Secure Networks,T069,Shyamala C K
+CSE4,4,ODD,23CSE341,Wireless Sensor Networks,T070,Sikha O K
+CSE4,4,ODD,23CSE342,Advanced Computer Networks,T071,Sini Raj P
+CSE3,3,ODD,23CSE343,Wireless and Mobile Networks,T072,Siva Ratna Kumari Narisetti
+CSE3,3,ODD,23CSE344,Modern Cellular Wireless Networks,T073,Souparnika Sreedhar
+CSE4,4,ODD,23CSE351,Foundations of Data Science,T074,Subathra P
+CSE4,4,ODD,23CSE352,Big Data Analytics,T075,Suchithra M
+CSE4,4,ODD,23CSE353,Data Visualization,T076,Suganya R
+CSE3,3,ODD,23CSE354,DBMS for Data Science,T077,Sujee R
+CSE3,3,ODD,23CSE355,Mining of Massive Datasets,T078,Sumesh A K
+CSE4,4,ODD,23CSE357,Time Series Analysis and Forecasting,T079,Swapna T R
+CSE4,4,ODD,23CSE361,Real Time OS for Cyber Physical Systems,T080,Thangavelu S
+CSE4,4,ODD,23CSE362,Edge Computing,T081,Uma J
+CSE3,3,ODD,23CSE363,Cloud Computing,T082,Vamsee Krishna Kiran M
+CSE3,3,ODD,23CSE364,Cyber Physical Systems,T083,Venkataraman D
+CSE4,4,ODD,23CSE371,Digital Image Processing,T084,Vidhya Balasubramaniam
+CSE4,4,ODD,23CSE372,Computer Graphics and Animation,T085,Vidhya S
+CSE4,4,ODD,23CSE373,Computer Vision,T086,Vijaya Kumar Sundar
+CSE3,3,ODD,23CSE374,Video Analysis,T001,Aarthi R
+CSE3,3,ODD,23CSE375,Augmented and Virtual Reality,T002,Abirami K
+CSE4,4,ODD,23CSE471,Natural Language Processing,T003,Anantha Narayanan V
+CSE4,4,ODD,23CSE472,Artificial Intelligence and Robotics,T004,Anbazhagan M
+CSE4,4,ODD,23CSE473,Neural Networks and Deep Learning,T005,Anisha Radhakrishnan
+CSE3,3,ODD,23CSE474,Computational Intelligence,T006,Anupa Vijay
+CSE3,3,ODD,23CSE475,Generative AI,T007,Archana Devi R
+CSE4,4,ODD,23CSE477,Reinforcement Learning,T008,Archana R
+CSE4,4,ODD,23CSE478,Drones and Robotics,T009,Arunkumar C
+CSE4,4,ODD,23CSE479,Machine Learning with Graphs,T010,Aswathi T
+CSE3,3,ODD,23CSE480,AI for Industrial Decision Making,T011,Bagavathi Sivakumar P

@@ -69,6 +69,37 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // Google login and retrieve tokens
+    const googleLogin = async (token, selected_user_id = null) => {
+        try {
+            const response = await schedulerAPI.post('/auth/google-login/', {
+                token,
+                selected_user_id
+            });
+
+            if (response.data.status === 'needs_selection') {
+                return { success: true, needsSelection: true, users: response.data.users };
+            }
+
+            const { access, refresh, user: userData } = response.data;
+
+            setAccessToken(access);
+            setRefreshToken(refresh);
+            localStorage.setItem('access_token', access);
+            localStorage.setItem('refresh_token', refresh);
+
+            schedulerAPI.defaults.headers.common['Authorization'] = `Bearer ${access}`;
+            setUser(userData);
+            return { success: true, user: userData };
+        } catch (error) {
+            console.error("Google login failed", error);
+            return {
+                success: false,
+                error: error.response?.data?.error || 'Google login failed.'
+            };
+        }
+    };
+
     const logout = () => {
         setUser(null);
         setAccessToken(null);
@@ -83,6 +114,7 @@ export const AuthProvider = ({ children }) => {
         loading,
         accessToken,
         login,
+        googleLogin,
         logout,
         isAuthenticated: !!user
     };

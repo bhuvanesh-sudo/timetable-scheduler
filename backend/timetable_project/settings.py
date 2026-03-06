@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 from pathlib import Path
+from decouple import config
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,10 +22,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-jb%w67lel30r#j9lh-dk=$e_8ft1@d5v@se#3%e-pi(hej7#r7'
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-fallback-key-for-dev-only')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=True, cast=bool)
 
 ALLOWED_HOSTS = []
 
@@ -88,8 +90,14 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    },
+    'audit_db': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'audit_db.sqlite3',
+    },
 }
+
+DATABASE_ROUTERS = ['timetable_project.db_router.AuditLogRouter']
 
 
 # Password validation
@@ -191,3 +199,15 @@ SIMPLE_JWT = {
 }
 # Timezone Configuration for India
 TIME_ZONE = 'Asia/Kolkata'
+
+# Email Configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'm3amrita@gmail.com'
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = 'm3amrita+admin@gmail.com'
+# Google OAuth Configuration
+# Get your Client ID from https://console.cloud.google.com/
+GOOGLE_CLIENT_ID = config('GOOGLE_CLIENT_ID', default='')

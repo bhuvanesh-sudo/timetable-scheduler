@@ -88,7 +88,8 @@ function UserManagement() {
                         <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ background: '#f8f9fa', textAlign: 'left' }}>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Username</th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Name (Username)</th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>User ID</th>
                                     <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Role</th>
                                     <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Department</th>
                                     <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Email</th>
@@ -99,7 +100,8 @@ function UserManagement() {
                             <tbody>
                                 {filteredUsers.map((user) => (
                                     <tr key={user.id} style={{ borderBottom: '1px solid #eee' }}>
-                                        <td style={{ padding: '12px', fontWeight: '500' }}>{user.username}</td>
+                                        <td style={{ padding: '12px', fontWeight: '500' }}>{user.first_name || user.username}</td>
+                                        <td style={{ padding: '12px' }}>{user.username}</td>
                                         <td style={{ padding: '12px' }}>
                                             <span className={`badge ${getRoleBadgeClass(user.role)}`} style={{ padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.875rem', color: 'white' }}>
                                                 {user.role}

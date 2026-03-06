@@ -1,0 +1,121 @@
+domain_id,year,semester_type,course_id,course_name,teacher_id,teacher_name
+1,3,EVEN,23CSE399,Cyber Security,T021,Divya M
+1,4,EVEN,23CSE499,Cyber Security,T021,Divya M
+1,3,EVEN,23CSE399,Cyber Security,T022,C.Bagavathi
+1,4,EVEN,23CSE499,Cyber Security,T022,C.Bagavathi
+1,3,EVEN,23CSE399,Cyber Security,T023,Ganesh Neelakanta Iyer
+1,4,EVEN,23CSE499,Cyber Security,T023,Ganesh Neelakanta Iyer
+1,3,EVEN,23CSE399,Cyber Security,T024,KARTHI R
+1,4,EVEN,23CSE499,Cyber Security,T024,KARTHI R
+1,3,EVEN,23CSE399,Cyber Security,T025,Krishan Kumar
+1,4,EVEN,23CSE499,Cyber Security,T025,Krishan Kumar
+1,3,EVEN,23CSE399,Cyber Security,T026,PRIYANKA KUMAR
+1,4,EVEN,23CSE499,Cyber Security,T026,PRIYANKA KUMAR
+1,3,EVEN,23CSE399,Cyber Security,T027,SABARINATH SUBRAMANIAM
+1,4,EVEN,23CSE499,Cyber Security,T027,SABARINATH SUBRAMANIAM
+1,3,EVEN,23CSE399,Cyber Security,T028,Gangadharan K
+1,4,EVEN,23CSE499,Cyber Security,T028,Gangadharan K
+1,3,EVEN,23CSE399,Cyber Security,T029,Gayathri V
+1,4,EVEN,23CSE499,Cyber Security,T029,Gayathri V
+1,3,EVEN,23CSE399,Cyber Security,T030,Geethu Mohan
+1,4,EVEN,23CSE499,Cyber Security,T030,Geethu Mohan
+2,3,EVEN,23CSE399,Computer Networks,T031,Govindarajan J
+2,4,EVEN,23CSE499,Computer Networks,T031,Govindarajan J
+2,3,EVEN,23CSE399,Computer Networks,T032,Harini N
+2,4,EVEN,23CSE499,Computer Networks,T032,Harini N
+2,3,EVEN,23CSE399,Computer Networks,T033,Hema P Menon
+2,4,EVEN,23CSE499,Computer Networks,T033,Hema P Menon
+2,3,EVEN,23CSE399,Computer Networks,T034,Jevitha K P
+2,4,EVEN,23CSE499,Computer Networks,T034,Jevitha K P
+2,3,EVEN,23CSE399,Computer Networks,T035,Jeyakumar G
+2,4,EVEN,23CSE499,Computer Networks,T035,Jeyakumar G
+2,3,EVEN,23CSE399,Computer Networks,T036,Kamalaveni V
+2,4,EVEN,23CSE499,Computer Networks,T036,Kamalaveni V
+2,3,EVEN,23CSE399,Computer Networks,T037,Lalithamani N
+2,4,EVEN,23CSE499,Computer Networks,T037,Lalithamani N
+2,3,EVEN,23CSE399,Computer Networks,T038,Latha Parameswaran
+2,4,EVEN,23CSE499,Computer Networks,T038,Latha Parameswaran
+2,3,EVEN,23CSE399,Computer Networks,T039,Malathi P
+2,4,EVEN,23CSE499,Computer Networks,T039,Malathi P
+2,3,EVEN,23CSE399,Computer Networks,T040,Manjusha R
+2,4,EVEN,23CSE499,Computer Networks,T040,Manjusha R
+3,3,EVEN,23CSE399,Data Science,T041,Manu Madhavan
+3,4,EVEN,23CSE499,Data Science,T041,Manu Madhavan
+3,3,EVEN,23CSE399,Data Science,T042,Venkadeshan R
+3,4,EVEN,23CSE499,Data Science,T042,Venkadeshan R
+3,3,EVEN,23CSE399,Data Science,T043,Lavanya G
+3,4,EVEN,23CSE499,Data Science,T043,Lavanya G
+3,3,EVEN,23CSE399,Data Science,T044,Nalinadevi K
+3,4,EVEN,23CSE499,Data Science,T044,Nalinadevi K
+3,3,EVEN,23CSE399,Data Science,T045,Neethu MR
+3,4,EVEN,23CSE499,Data Science,T045,Neethu MR
+3,3,EVEN,23CSE399,Data Science,T046,Padmavathi S
+3,4,EVEN,23CSE499,Data Science,T046,Padmavathi S
+3,3,EVEN,23CSE399,Data Science,T047,Parambalath Narendra Kumar
+3,4,EVEN,23CSE499,Data Science,T047,Parambalath Narendra Kumar
+3,3,EVEN,23CSE399,Data Science,T048,Prakash P
+3,4,EVEN,23CSE499,Data Science,T048,Prakash P
+3,3,EVEN,23CSE399,Data Science,T049,Prashant R Nair
+3,4,EVEN,23CSE499,Data Science,T049,Prashant R Nair
+3,3,EVEN,23CSE399,Data Science,T050,Prathilothamai M
+3,4,EVEN,23CSE499,Data Science,T050,Prathilothamai M
+4,3,EVEN,23CSE399,Cyber Physical Systems,T051,Radhika G
+4,4,EVEN,23CSE499,Cyber Physical Systems,T051,Radhika G
+4,3,EVEN,23CSE399,Cyber Physical Systems,T052,Radhika N
+4,4,EVEN,23CSE499,Cyber Physical Systems,T052,Radhika N
+4,3,EVEN,23CSE399,Cyber Physical Systems,T053,Raghesh Krishnan K
+4,4,EVEN,23CSE499,Cyber Physical Systems,T053,Raghesh Krishnan K
+4,3,EVEN,23CSE399,Cyber Physical Systems,T054,Rajathilagam B
+4,4,EVEN,23CSE499,Cyber Physical Systems,T054,Rajathilagam B
+4,3,EVEN,23CSE399,Cyber Physical Systems,T055,Ramya GR
+4,4,EVEN,23CSE499,Cyber Physical Systems,T055,Ramya GR
+4,3,EVEN,23CSE399,Cyber Physical Systems,T056,Ramya U M
+4,4,EVEN,23CSE499,Cyber Physical Systems,T056,Ramya U M
+4,3,EVEN,23CSE399,Cyber Physical Systems,T057,Rimjhim Padam Singh
+4,4,EVEN,23CSE499,Cyber Physical Systems,T057,Rimjhim Padam Singh
+4,3,EVEN,23CSE399,Cyber Physical Systems,T058,Ritwik M
+4,4,EVEN,23CSE499,Cyber Physical Systems,T058,Ritwik M
+4,3,EVEN,23CSE399,Cyber Physical Systems,T059,Sabarish BA
+4,4,EVEN,23CSE499,Cyber Physical Systems,T059,Sabarish BA
+4,3,EVEN,23CSE399,Cyber Physical Systems,T060,Saravanan S
+4,4,EVEN,23CSE499,Cyber Physical Systems,T060,Saravanan S
+5,3,EVEN,23CSE399,Computer Vision,T061,Sathiya R R
+5,4,EVEN,23CSE499,Computer Vision,T061,Sathiya R R
+5,3,EVEN,23CSE399,Computer Vision,T062,Sathya S
+5,4,EVEN,23CSE499,Computer Vision,T062,Sathya S
+5,3,EVEN,23CSE399,Computer Vision,T063,Selvi C
+5,4,EVEN,23CSE499,Computer Vision,T063,Selvi C
+5,3,EVEN,23CSE399,Computer Vision,T064,Senthil Kumar T
+5,4,EVEN,23CSE499,Computer Vision,T064,Senthil Kumar T
+5,3,EVEN,23CSE399,Computer Vision,T065,Senthilkumar M
+5,4,EVEN,23CSE499,Computer Vision,T065,Senthilkumar M
+5,3,EVEN,23CSE399,Computer Vision,T066,Shanmuga Priya S
+5,4,EVEN,23CSE499,Computer Vision,T066,Shanmuga Priya S
+5,3,EVEN,23CSE399,Computer Vision,T067,Shivapratap Gopakumar
+5,4,EVEN,23CSE499,Computer Vision,T067,Shivapratap Gopakumar
+5,3,EVEN,23CSE399,Computer Vision,T068,Shriram K V
+5,4,EVEN,23CSE499,Computer Vision,T068,Shriram K V
+5,3,EVEN,23CSE399,Computer Vision,T069,Shyamala C K
+5,4,EVEN,23CSE499,Computer Vision,T069,Shyamala C K
+5,3,EVEN,23CSE399,Computer Vision,T070,Sikha O K
+5,4,EVEN,23CSE499,Computer Vision,T070,Sikha O K
+6,3,EVEN,23CSE399,Artificial Intelligence,T071,Sini Raj P
+6,4,EVEN,23CSE499,Artificial Intelligence,T071,Sini Raj P
+6,3,EVEN,23CSE399,Artificial Intelligence,T072,Siva Ratna Kumari Narisetti
+6,4,EVEN,23CSE499,Artificial Intelligence,T072,Siva Ratna Kumari Narisetti
+6,3,EVEN,23CSE399,Artificial Intelligence,T073,Souparnika Sreedhar
+6,4,EVEN,23CSE499,Artificial Intelligence,T073,Souparnika Sreedhar
+6,3,EVEN,23CSE399,Artificial Intelligence,T074,Subathra P
+6,4,EVEN,23CSE499,Artificial Intelligence,T074,Subathra P
+6,3,EVEN,23CSE399,Artificial Intelligence,T075,Suchithra M
+6,4,EVEN,23CSE499,Artificial Intelligence,T075,Suchithra M
+6,3,EVEN,23CSE399,Artificial Intelligence,T076,Suganya R
+6,4,EVEN,23CSE499,Artificial Intelligence,T076,Suganya R
+6,3,EVEN,23CSE399,Artificial Intelligence,T077,Sujee R
+6,4,EVEN,23CSE499,Artificial Intelligence,T077,Sujee R
+6,3,EVEN,23CSE399,Artificial Intelligence,T078,Sumesh A K
+6,4,EVEN,23CSE499,Artificial Intelligence,T078,Sumesh A K
+6,3,EVEN,23CSE399,Artificial Intelligence,T079,Swapna T R
+6,4,EVEN,23CSE499,Artificial Intelligence,T079,Swapna T R
+6,3,EVEN,23CSE399,Artificial Intelligence,T080,Thangavelu S
+6,4,EVEN,23CSE499,Artificial Intelligence,T080,Thangavelu S

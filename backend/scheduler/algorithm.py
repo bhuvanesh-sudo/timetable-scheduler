@@ -152,21 +152,12 @@ class TimetableScheduler:
                         distinct_teachers.append(m.teacher)
                         seen_ids.add(m.teacher.teacher_id)
                 
-                if not distinct_teachers:
-                    # Fallback Strategy: Find any teacher in the same department?
-                    # Since Course doesn't have dept, we might infer or just pick ANY available matching dept
-                    # For now, let's try to find teachers who teach SIMILAR courses?
-                    # Simplest: Find ANY teacher with capacity (Global Fallback)
-                    # To be safe, maybe restricted to department if we can guess it.
-                    # Given dataset shows mostly "CSE", we'll query all.
-                    distinct_teachers = list(Teacher.objects.all())
-                    
-                    # Logic continues...
+                # Filter capable teachers based on current load (Smart 4+2 Rule)
+                # Capable teachers have room for at least 1 section (slots_per_section)
+                # If mapped capable teachers are scarce, expand search to global pool.
                 
-                # Filter/Sort by available capacity
-                # We want teachers who have room for at least 1 section (slots_per_section)
                 capable_teachers = []
-                overloaded_fallback = [] # Teachers who are full but might need to be used
+                overloaded_fallback = [] 
                 
                 for t in distinct_teachers:
                     current = teacher_load[t.teacher_id]
@@ -175,8 +166,6 @@ class TimetableScheduler:
                     else:
                         overloaded_fallback.append(t)
                 
-                # If mapped capable teachers are effectively zero (e.g. all mapped are full)
-                # AND we started with mappings (not global), we should Expand Search to Global
                 is_mapped_search = (len(distinct_teachers) != Teacher.objects.count()) 
                 
                 if not capable_teachers and is_mapped_search:
@@ -198,16 +187,8 @@ class TimetableScheduler:
                 
                 pool = capable_teachers + overloaded_fallback
                 
-                # Assign to sections via Round Robin but satisfying capacity
-                # We need to maintain a pointer or strategy?
-                # Simple strategy: Iterate through pool until we find one with capacity.
-                # If all full, add to pool from global?
-                
-                # It's better to fetch ALL capable teachers upfront? 
-                # We tried that with fallback.
-                # But 'pool' was snapshot.
-                
                 # Dynamic Assignment Loop
+                # Try to assign from pool first, then expand to global if needed.
                 for i, section in enumerate(year_sections):
                     selected_candidate = None
                     
@@ -224,9 +205,6 @@ class TimetableScheduler:
                     if not selected_candidate and is_mapped_search:
                         # Find ANY teacher in system with capacity
                         # Start with same dept if possible (not easy to guess), or just all
-                        # Efficiency note: optimize this query
-                        # We can iterate through ALL teachers and check `teacher_load`.
-                        # Since we have 86 teachers, it's cheap.
                         
                         best_global = None
                         min_load = float('inf')
@@ -438,7 +416,9 @@ class TimetableScheduler:
     
     def _find_suitable_room(self, course, timeslot):
         """
-        Find a suitable room for a course at a given timeslot.
+        Find a suitable CLASSROOM for a theory session at a given timeslot.
+        This method is only called from Phase 2 (theory scheduling).
+        Lab/practical sessions use _find_block_room instead.
         
         Args:
             course: Course object
@@ -447,20 +427,12 @@ class TimetableScheduler:
         Returns:
             Room object or None
         """
-        # Determine required room type
-        if course.is_lab:
-            room_type = 'LAB'
-        else:
-            room_type = 'CLASSROOM'
-        
-        # Get all rooms of the required type
-        rooms = Room.objects.filter(room_type=room_type)
-        
-        # Shuffle for variety
-        rooms = list(rooms)
+        # Theory sessions always go in classrooms,
+        # regardless of course.is_lab flag.
+        # Practical sessions are handled by _find_block_room.
+        rooms = list(Room.objects.filter(room_type='CLASSROOM'))
         random.shuffle(rooms)
         
-        # Find first available room
         for room in rooms:
             is_valid, _ = self.validator.validate_room_availability(room, timeslot)
             if is_valid:

@@ -15,7 +15,7 @@ from core.models import (
 )
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases=['default', 'audit_db'])
 class TestTeacherModel:
     """Test cases for Teacher model"""
     
@@ -45,7 +45,7 @@ class TestTeacherModel:
             teacher.full_clean()
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases=['default', 'audit_db'])
 class TestCourseModel:
     """Test cases for Course model"""
     
@@ -86,7 +86,7 @@ class TestCourseModel:
         assert course.is_lab is True
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases=['default', 'audit_db'])
 class TestRoomModel:
     """Test cases for Room model"""
     
@@ -112,7 +112,7 @@ class TestRoomModel:
         assert room.room_type == 'LAB'
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases=['default', 'audit_db'])
 class TestTimeSlotModel:
     """Test cases for TimeSlot model"""
     
@@ -132,7 +132,7 @@ class TestTimeSlotModel:
         assert 'Slot 1' in str(slot)
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases=['default', 'audit_db'])
 class TestSectionModel:
     """Test cases for Section model"""
     
@@ -150,7 +150,7 @@ class TestSectionModel:
         assert 'Year 1' in str(section)
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases=['default', 'audit_db'])
 class TestScheduleModel:
     """Test cases for Schedule model"""
     
@@ -168,7 +168,7 @@ class TestScheduleModel:
         assert schedule.quality_score is None or schedule.quality_score == 0.0
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases=['default', 'audit_db'])
 class TestTeacherCourseMapping:
     """Test cases for TeacherCourseMapping"""
     

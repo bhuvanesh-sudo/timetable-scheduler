@@ -3,7 +3,7 @@ from django.urls import reverse
 from rest_framework import status
 from core.models import Schedule
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases=['default', 'audit_db'])
 class TestSchedulerAPI:
     
     def test_get_timetable_unauthorized(self, api_client):

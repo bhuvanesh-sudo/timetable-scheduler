@@ -16,10 +16,16 @@ import AuditLogs from './pages/AuditLogs';
 import UserManagement from './pages/UserManagement';
 import ChangeRequests from './pages/ChangeRequests';
 import TeacherRequests from './pages/TeacherRequests';
+import SystemHealth from './pages/SystemHealth';
 import Login from './pages/Login';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import ProtectedRoute from './components/ProtectedRoute';
+import NotificationBell from './components/NotificationBell';
+
+// Read Google Client ID from environment variable
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "PASTE_YOUR_REAL_ID_HERE.apps.googleusercontent.com";
 
 // Layout component for authenticated pages
 const MainLayout = ({ children }) => {
@@ -81,6 +87,11 @@ const MainLayout = ({ children }) => {
                     Audit Logs
                   </Link>
                 </li>
+                <li className="nav-item">
+                  <Link to="/system-health" className="nav-link">
+                    System Health
+                  </Link>
+                </li>
               </>
             )}
 
@@ -138,11 +149,12 @@ const MainLayout = ({ children }) => {
       {/* Main Content Area */}
       <main className="main-content">
         <header className="top-bar">
-          <div style={{ textAlign: 'right' }}>
-            <div className="user-welcome">
-              Welcome, {user?.username} ({user?.role})
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px' }}>
+            <div className="user-welcome" style={{ marginRight: '4px' }}>
+              Welcome, {user?.first_name || user?.username} ({user?.role})
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
+            <NotificationBell />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>
                 {theme === 'light' ? 'Light' : 'Dark'}
               </span>
@@ -173,75 +185,83 @@ function App() {
   return (
     <Router>
       <ThemeProvider>
-        <AuthProvider>
-          <Routes>
-            <Route path="/login" element={<Login />} />
+        <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+          <AuthProvider>
+            <Routes>
+              <Route path="/login" element={<Login />} />
 
-            {/* Protected Routes */}
-            <Route path="/" element={
-              <ProtectedRoute>
-                <Navigate to="/dashboard" replace />
-              </ProtectedRoute>
-            } />
+              {/* Protected Routes */}
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <Navigate to="/dashboard" replace />
+                </ProtectedRoute>
+              } />
 
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <MainLayout><Dashboard /></MainLayout>
-              </ProtectedRoute>
-            } />
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <MainLayout><Dashboard /></MainLayout>
+                </ProtectedRoute>
+              } />
 
-            <Route path="/data" element={
-              <ProtectedRoute roles={['ADMIN']}>
-                <MainLayout><DataManagement /></MainLayout>
-              </ProtectedRoute>
-            } />
+              <Route path="/data" element={
+                <ProtectedRoute roles={['ADMIN']}>
+                  <MainLayout><DataManagement /></MainLayout>
+                </ProtectedRoute>
+              } />
 
-            <Route path="/generate" element={
-              <ProtectedRoute roles={['ADMIN']}>
-                <MainLayout><GenerateSchedule /></MainLayout>
-              </ProtectedRoute>
-            } />
+              <Route path="/generate" element={
+                <ProtectedRoute roles={['ADMIN']}>
+                  <MainLayout><GenerateSchedule /></MainLayout>
+                </ProtectedRoute>
+              } />
 
-            <Route path="/timetable" element={
-              <ProtectedRoute>
-                <MainLayout><ViewTimetable /></MainLayout>
-              </ProtectedRoute>
-            } />
+              <Route path="/timetable" element={
+                <ProtectedRoute>
+                  <MainLayout><ViewTimetable /></MainLayout>
+                </ProtectedRoute>
+              } />
 
-            <Route path="/analytics" element={
-              <ProtectedRoute roles={['ADMIN', 'HOD']}>
-                <MainLayout><Analytics /></MainLayout>
-              </ProtectedRoute>
-            } />
+              <Route path="/analytics" element={
+                <ProtectedRoute roles={['ADMIN', 'HOD']}>
+                  <MainLayout><Analytics /></MainLayout>
+                </ProtectedRoute>
+              } />
 
-            <Route path="/users" element={
-              <ProtectedRoute roles={['ADMIN']}>
-                <MainLayout><UserManagement /></MainLayout>
-              </ProtectedRoute>
-            } />
+              <Route path="/users" element={
+                <ProtectedRoute roles={['ADMIN']}>
+                  <MainLayout><UserManagement /></MainLayout>
+                </ProtectedRoute>
+              } />
 
-            <Route path="/change-requests" element={
-              <ProtectedRoute roles={['ADMIN']}>
-                <MainLayout><ChangeRequests /></MainLayout>
-              </ProtectedRoute>
-            } />
+              <Route path="/change-requests" element={
+                <ProtectedRoute roles={['ADMIN']}>
+                  <MainLayout><ChangeRequests /></MainLayout>
+                </ProtectedRoute>
+              } />
 
-            <Route path="/teacher-requests" element={
-              <ProtectedRoute roles={['HOD']}>
-                <MainLayout><TeacherRequests /></MainLayout>
-              </ProtectedRoute>
-            } />
+              <Route path="/teacher-requests" element={
+                <ProtectedRoute roles={['HOD']}>
+                  <MainLayout><TeacherRequests /></MainLayout>
+                </ProtectedRoute>
+              } />
 
-            <Route path="/audit-logs" element={
-              <ProtectedRoute roles={['ADMIN']}>
-                <MainLayout><AuditLogs /></MainLayout>
-              </ProtectedRoute>
-            } />
+              <Route path="/audit-logs" element={
+                <ProtectedRoute roles={['ADMIN']}>
+                  <MainLayout><AuditLogs /></MainLayout>
+                </ProtectedRoute>
+              } />
 
-            {/* Catch all - redirect to dashboard if logged in, else login */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </AuthProvider>
+              <Route path="/system-health" element={
+                <ProtectedRoute roles={['ADMIN']}>
+                  <MainLayout><SystemHealth /></MainLayout>
+                </ProtectedRoute>
+              } />
+
+              {/* Catch all - redirect to dashboard if logged in, else login */}
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </AuthProvider>
+        </GoogleOAuthProvider>
       </ThemeProvider>
     </Router>
   );

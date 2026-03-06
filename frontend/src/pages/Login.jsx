@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { motion } from 'framer-motion';
-import { User, Lock, Loader2, ArrowRight, LayoutGrid } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { User, Lock, Loader2, ArrowRight, LayoutGrid, Chrome, CheckCircle2 } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
 import '../styles/Login.css';
 
 /**
@@ -15,11 +16,23 @@ const Login = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const { login } = useAuth();
+    const [matchingUsers, setMatchingUsers] = useState([]);
+    const [showSelection, setShowSelection] = useState(false);
+    const [googleToken, setGoogleToken] = useState(null);
+
+    const { login, googleLogin } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
     const from = location.state?.from?.pathname || '/';
+
+    const handleLoginSuccess = (user) => {
+        if (user?.role === 'FACULTY') {
+            navigate('/timetable', { replace: true });
+        } else {
+            navigate(from, { replace: true });
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -29,13 +42,42 @@ const Login = () => {
         const result = await login(username, password);
 
         if (result.success) {
-            if (result.user?.role === 'FACULTY') {
-                navigate('/timetable', { replace: true });
+            handleLoginSuccess(result.user);
+        } else {
+            setError(result.error);
+        }
+        setIsLoading(false);
+    };
+
+    const handleGoogleSuccess = async (credentialResponse) => {
+        setError('');
+        setIsLoading(true);
+        const token = credentialResponse.credential;
+        setGoogleToken(token);
+
+        const result = await googleLogin(token);
+
+        if (result.success) {
+            if (result.needsSelection) {
+                setMatchingUsers(result.users);
+                setShowSelection(true);
             } else {
-                navigate(from, { replace: true });
+                handleLoginSuccess(result.user);
             }
         } else {
             setError(result.error);
+        }
+        setIsLoading(false);
+    };
+
+    const handleSelectUser = async (userId) => {
+        setIsLoading(true);
+        const result = await googleLogin(googleToken, userId);
+        if (result.success) {
+            handleLoginSuccess(result.user);
+        } else {
+            setError(result.error);
+            setShowSelection(false);
         }
         setIsLoading(false);
     };
@@ -106,78 +148,127 @@ const Login = () => {
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit}>
-                        {/* Username Field */}
-                        <div className="form-group">
-                            <label className="input-label">Username / Email</label>
-                            <div className="input-wrapper">
-                                <div className="input-icon">
-                                    <User size={20} />
+                    <AnimatePresence mode="wait">
+                        {!showSelection ? (
+                            <motion.div
+                                key="login-form"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                            >
+                                <form onSubmit={handleSubmit}>
+                                    {/* Username Field */}
+                                    <div className="form-group">
+                                        <label className="input-label">Username / Email</label>
+                                        <div className="input-wrapper">
+                                            <div className="input-icon">
+                                                <User size={20} />
+                                            </div>
+                                            <input
+                                                type="text"
+                                                value={username}
+                                                onChange={(e) => setUsername(e.target.value)}
+                                                required
+                                                className="input-field"
+                                                placeholder="Enter your username"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Password Field */}
+                                    <div className="form-group">
+                                        <label className="input-label">Password</label>
+                                        <div className="input-wrapper">
+                                            <div className="input-icon">
+                                                <Lock size={20} />
+                                            </div>
+                                            <input
+                                                type="password"
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                required
+                                                className="input-field"
+                                                placeholder="••••••••"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <motion.button
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        type="submit"
+                                        disabled={isLoading}
+                                        className="submit-btn"
+                                    >
+                                        {isLoading ? (
+                                            <>
+                                                <Loader2 className="btn-spinner" size={20} />
+                                                <span>Verifying...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span>Sign In</span>
+                                                <ArrowRight size={18} />
+                                            </>
+                                        )}
+                                    </motion.button>
+                                </form>
+
+                                <div className="divider">
+                                    <span>Or continue with</span>
                                 </div>
-                                <input
-                                    type="text"
-                                    value={username}
-                                    onChange={(e) => setUsername(e.target.value)}
-                                    required
-                                    className="input-field"
-                                    placeholder="Enter your username"
-                                />
-                            </div>
-                        </div>
 
-                        {/* Password Field */}
-                        <div className="form-group">
-                            <label className="input-label">Password</label>
-                            <div className="input-wrapper">
-                                <div className="input-icon">
-                                    <Lock size={20} />
+                                <div className="google-login-container">
+                                    <GoogleLogin
+                                        onSuccess={handleGoogleSuccess}
+                                        onError={() => setError('Google Login Failed')}
+                                        useOneTap
+                                        width="100%"
+                                        text="signin_with"
+                                        shape="rectangular"
+                                        theme="outline"
+                                    />
                                 </div>
-                                <input
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                    className="input-field"
-                                    placeholder="••••••••"
-                                />
-                            </div>
-                        </div>
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="account-selection"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                className="selection-view"
+                            >
+                                <div className="selection-header">
+                                    <h3>Select Account</h3>
+                                    <p>Since you are using a master Gmail account, please select which profile you want to access.</p>
+                                </div>
 
-                        <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            type="submit"
-                            disabled={isLoading}
-                            className="submit-btn"
-                        >
-                            {isLoading ? (
-                                <>
-                                    <Loader2 className="btn-spinner" size={20} />
-                                    <span>Verifying...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <span>Sign In</span>
-                                    <ArrowRight size={18} />
-                                </>
-                            )}
-                        </motion.button>
-                    </form>
+                                <div className="user-list">
+                                    {matchingUsers.map(user => (
+                                        <button
+                                            key={user.id}
+                                            onClick={() => handleSelectUser(user.id)}
+                                            className="user-select-item"
+                                            disabled={isLoading}
+                                        >
+                                            <div className="user-info">
+                                                <span className="user-name">{user.display_name}</span>
+                                                <span className="user-role">{user.role} ({user.username})</span>
+                                            </div>
+                                            <CheckCircle2 size={18} className="select-icon" />
+                                        </button>
+                                    ))}
+                                </div>
 
-                    {/* Google Sign In Section */}
-                    <div className="divider">
-                        <span>Or continue with</span>
-                    </div>
-
-                    <button type="button" className="google-btn" disabled title="Coming Soon">
-                        <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                        </svg>
-                        <span>Sign in with Google (Coming Soon)</span>
-                    </button>
+                                <button
+                                    onClick={() => setShowSelection(false)}
+                                    className="back-btn"
+                                >
+                                    Back to Login
+                                </button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
                     <div className="form-footer">
                         M3 System for Amrita University v1.0 © 2026

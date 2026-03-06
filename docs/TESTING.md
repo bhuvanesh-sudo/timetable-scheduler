@@ -15,83 +15,53 @@ The M3 Timetable System uses a comprehensive testing strategy covering unit test
 - **pytest-cov**: Code coverage reporting
 - **Python**: 3.13.5
 
-### Frontend Testing (Planned for Sprint 2)
+### Frontend Testing
 - **Vitest**: Fast unit testing framework
 - **React Testing Library**: Component testing
-- **Jest**: Additional testing utilities
 
 ---
 
 ## Test Coverage
 
-### Current Test Suite (Sprint 1)
+### Current Test Suite (Consolidated)
 
-#### Unit Tests - Models (`tests/test_models.py`)
-✅ **17 tests - 100% passing**
+#### Backend Tests (`backend/tests/`)
+✅ **Comprehensive Coverage - 100% passing**
 
-**Test Classes:**
-1. `TestTeacherModel` - 2 tests
-   - Create teacher
-   - Validate max hours constraint
-   
-2. `TestCourseModel` - 2 tests
-   - Create theory course
-   - Create lab course
-   
-3. `TestRoomModel` - 2 tests
-   - Create classroom
-   - Create lab room
-   
-4. `TestTimeSlotModel` - 1 test
-   - Create time slot
-   
-5. `TestSectionModel` - 1 test
-   - Create section
-   
-6. `TestScheduleModel` - 1 test
-   - Create schedule
-   
-7. `TestTeacherCourseMapping` - 1 test
-   - Create teacher-course mapping
+**Modules:**
+1. `core/` - Model tests and core logic
+2. `rbac/` - Role-Based Access Control (RBAC) tests
+3. `data_ingestion/` - CSV import and integrity tests
+4. `algorithm/` - Scheduling algorithm logic
+5. `notifications/` - System notification tests
 
-#### Unit Tests - Constraints (`tests/test_constraints.py`)
-✅ **7 tests - 100% passing**
+#### Frontend Tests (`frontend/src/__tests__/`)
+✅ **Component Coverage**
 
-**Test Classes:**
-1. `TestConstraintValidator` - 7 tests
-   - Faculty availability (valid)
-   - Faculty availability (conflict)
-   - Room availability (valid)
-   - Room type match (valid)
-   - Room type match (invalid - lab in classroom)
-   - Section availability (valid)
-   - Validate all constraints (success)
+**Modules:**
+1. `App.test.jsx` - Routing and main application flow
 
 ---
 
 ## Running Tests
 
-### Run All Tests
+### Run All Backend Tests
 ```bash
 cd backend
 source venv/bin/activate
 pytest tests/ -v
 ```
 
-### Run Specific Test File
+### Run Specific Backend Module
 ```bash
-pytest tests/test_models.py -v
-pytest tests/test_constraints.py -v
+pytest tests/rbac/ -v
+pytest tests/algorithm/ -v
 ```
 
-### Run with Coverage
+### Run Frontend Tests
 ```bash
-pytest tests/ --cov=core --cov=scheduler --cov-report=html
-```
-
-### View Coverage Report
-```bash
-open htmlcov/index.html
+cd frontend
+npm test
 ```
 
 ---

@@ -30,12 +30,13 @@ Generated: February 7, 2026, 12:28 PM IST
 | `import_data.py` | 284 lines | CSV import management command |
 
 ### Tests (`backend/tests/`)
-| File | Lines of Code | Purpose |
-|------|--------------|---------|
-| `test_models.py` | 205 lines | Unit tests for all models (10 tests) |
-| `test_constraints.py` | 188 lines | Unit tests for constraints (7 tests) |
-| `conftest.py` | 14 lines | Pytest configuration |
-| `__init__.py` | 1 line | Package initialization |
+| File | Purpose |
+|------|---------|
+| `core/` | Unit tests for all models and constraints |
+| `rbac/` | RBAC and permission tests |
+| `data_ingestion/` | Dataset integrity and validation tests |
+| `algorithm/` | Core scheduler logic tests |
+| `conftest.py` | Shared test fixtures |
 
 **Total Backend Code: 2,493 lines of Python**
 
@@ -44,11 +45,12 @@ Generated: February 7, 2026, 12:28 PM IST
 ## Frontend Code Files (React/JavaScript)
 
 ### Main Application (`frontend/src/`)
-| File | Lines of Code | Purpose |
-|------|--------------|---------|
-| `App.jsx` | 74 lines | Main app component with routing |
-| `index.css` | 462 lines | Professional CSS design system |
-| `main.jsx` | 10 lines | React entry point |
+| File | Purpose |
+|------|---------|
+| `App.jsx` | Main app component with routing |
+| `index.css` | Professional CSS design system |
+| `main.jsx` | React entry point |
+| `__tests__/` | Consolidated Vitest component tests |
 
 ### Services (`frontend/src/services/`)
 | File | Lines of Code | Purpose |
@@ -56,13 +58,12 @@ Generated: February 7, 2026, 12:28 PM IST
 | `api.js` | 88 lines | API service layer with all endpoints |
 
 ### Pages (`frontend/src/pages/`)
-| File | Lines of Code | Purpose |
-|------|--------------|---------|
-| `Dashboard.jsx` | 106 lines | Dashboard with statistics |
-| `DataManagement.jsx` | 208 lines | Data viewing with tabs |
-| `GenerateSchedule.jsx` | 126 lines | Schedule generation form |
-| `ViewTimetable.jsx` | 170 lines | Interactive timetable grid |
-| `Analytics.jsx` | 196 lines | Workload and room analytics |
+| File | Purpose |
+|------|---------|
+| `Dashboard.jsx` | Role-based dashboard router |
+| `dashboards/` | Specialized Admin/HOD/Faculty dashboards |
+| `DataManagement.jsx` | Dataset CRUD and viewing |
+| `ViewTimetable.jsx` | Interactive timetable grid |
 
 **Total Frontend Code: 1,482 lines of JavaScript/JSX/CSS**
 
@@ -111,60 +112,26 @@ Generated: February 7, 2026, 12:28 PM IST
 
 ## Project Structure Summary
 
-```
-SE/
+```bash
+timetable-scheduler/
 ├── backend/                    # Django Backend
 │   ├── core/                  # Core app (models, API)
-│   │   ├── models.py          ✅ 331 lines
-│   │   ├── serializers.py     ✅ 209 lines
-│   │   ├── views.py           ✅ 280 lines
-│   │   ├── urls.py            ✅ 33 lines
-│   │   └── management/
-│   │       └── commands/
-│   │           └── import_data.py  ✅ 284 lines
-│   ├── scheduler/             # Scheduling algorithm
-│   │   ├── algorithm.py       ✅ 244 lines
-│   │   ├── constraints.py     ✅ 258 lines
-│   │   ├── views.py           ✅ 228 lines
-│   │   └── urls.py            ✅ 15 lines
-│   ├── tests/                 # Unit tests
-│   │   ├── test_models.py     ✅ 205 lines
-│   │   ├── test_constraints.py ✅ 188 lines
-│   │   └── conftest.py        ✅ 14 lines
-│   ├── db.sqlite3             ✅ 348 KB (1,300+ records)
-│   └── requirements.txt       ✅ 8 dependencies
+│   ├── scheduler/             # Scheduling algorithm logic
+│   ├── tests/                 # Consolidated testing suite
+│   ├── db.sqlite3             # Main database
+│   └── audit_db.sqlite3       # Audit trail database
 │
 ├── frontend/                   # React Frontend
 │   ├── src/
-│   │   ├── App.jsx            ✅ 74 lines
-│   │   ├── index.css          ✅ 462 lines
-│   │   ├── services/
-│   │   │   └── api.js         ✅ 88 lines
-│   │   └── pages/
-│   │       ├── Dashboard.jsx         ✅ 106 lines
-│   │       ├── DataManagement.jsx    ✅ 208 lines
-│   │       ├── GenerateSchedule.jsx  ✅ 126 lines
-│   │       ├── ViewTimetable.jsx     ✅ 170 lines
-│   │       └── Analytics.jsx         ✅ 196 lines
-│   └── package.json           ✅ npm config
+│   │   ├── __tests__/         # Component tests
+│   │   ├── dashboards/        # Role-specific views
+│   │   ├── pages/             # Main application pages
+│   │   └── services/          # API service layer
+│   └── package.json           # npm dependencies
 │
-├── docs/                       # Documentation
-│   ├── UML_DIAGRAMS.md        ✅ UML specifications
-│   └── TESTING.md             ✅ Test documentation
-│
-├── Datasets/                   # CSV data files
-│   ├── teachers1.csv          ✅
-│   ├── teachers2.csv          ✅
-│   ├── courses.csv            ✅
-│   ├── elective_courses.csv   ✅
-│   ├── rooms.csv              ✅
-│   ├── timeslots.csv          ✅
-│   ├── classes_odd.csv        ✅
-│   ├── classes_even.csv       ✅
-│   ├── teacher_course_map1.csv ✅
-│   └── teacher_course_map2.csv ✅
-│
-└── README.md                   ✅ 11,985 bytes
+├── Datasets/                   # Core CSV data
+├── docs/                       # Project documentation
+└── README.md                   # Main project overview
 ```
 
 ---

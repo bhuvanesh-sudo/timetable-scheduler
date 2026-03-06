@@ -1,0 +1,134 @@
+course_id,course_name,elective_type
+22ADM201,Strategic Lessons from Mahabharatha,Amrita Value Programme I
+22ADM211,Leadership from Ramayana,Amrita Value Programme II
+22AVP210,Kerala Mural Art and Painting,Amrita Value Programme I
+22AVP218,Yoga Therapy and Lessons,Amrita Value Programme II
+22AVP212,Introduction to Traditional Indian Systems of Medicine,Amrita Value Programme I
+22AVP201,Amma’s Life and Message to the Modern World,Amrita Value Programme II
+22AVP204,Lessons from the Upanishads,Amrita Value Programme I
+22AVP205,Message of the Bhagavad Gita,Amrita Value Programme II
+22AVP206,Life and Message of Swami Vivekananda,Amrita Value Programme I
+22AVP207,Life and Teachings of Spiritual Masters of India,Amrita Value Programme II
+22AVP208,Insights into Indian Arts and Literature,Amrita Value Programme I
+22AVP213,Traditional Fine Arts of India,Amrita Value Programme II
+22AVP214,Principles of Worship in India,Amrita Value Programme I
+22AVP215,Temple Mural Arts in Kerala,Amrita Value Programme II
+22AVP216,Insights into Indian Classical Music,Amrita Value Programme I
+22AVP219,Insights into Traditional Indian Painting,Amrita Value Programme II
+22AVP220,Insights into Indian Classical Dance,Amrita Value Programme I
+22AVP221,Indian Martial Arts and Self Defense,Amrita Value Programme II
+22AVP209,Yoga and Meditation,Amrita Value Programme I
+23CUL230,Achieving Excellence in Life - An Indian Perspective,Free Elective I
+23CUL231,Excellence in Daily Life,Free Elective II
+23CUL232,Exploring Science and Technology in Ancient India,Free Elective I
+23CUL233,Yoga Psychology,Free Elective II
+23ENG230,Business Communication,Free Elective I
+23ENG231,Indian Thought through English,Free Elective II
+23ENG232,Insights into Life through English Literature,Free Elective I
+23ENG233,Technical Communication,Free Elective II
+23ENG234,Indian Short Stories in English,Free Elective I
+23FRE230,Proficiency in French Language (Lower),Free Elective II
+23FRE231,Proficiency in French Language (Higher),Free Elective I
+23GER230,German for Beginners I,Free Elective II
+23GER231,German for Beginners II,Free Elective I
+23GER232,Proficiency in German Language (Lower),Free Elective II
+23GER233,Proficiency in German Language (Higher),Free Elective I
+23HIN230,Hindi I,Free Elective II
+23HIN231,Hindi II,Free Elective I
+23HUM230,Emotional Intelligence,Free Elective II
+23HUM231,Glimpses into the Indian Mind - the Growth of Modern India,Free Elective I
+23HUM232,Glimpses of Eternal India,Free Elective II
+23HUM233,Glimpses of Indian Economy and Polity,Free Elective I
+23HUM234,Health and Lifestyle,Free Elective II
+23HUM235,Indian Classics for the Twenty-first Century,Free Elective I
+23HUM236,Introduction to India Studies,Free Elective II
+23HUM237,Introduction to Sanskrit Language and Literature,Free Elective I
+23HUM238,National Service Scheme,Free Elective II
+23HUM239,Psychology for Effective Living,Free Elective I
+23HUM240,Psychology for Engineers,Free Elective II
+23HUM241,Science and Society - An Indian Perspective,Free Elective I
+23HUM242,The Message of Bhagwat Gita,Free Elective II
+23HUM243,The Message of the Upanishads,Free Elective I
+23HUM244,Understanding Science of Food and Nutrition,Free Elective II
+23HUM245,Service Learning,Free Elective I
+23JAP230,Proficiency in Japanese Language (Lower),Free Elective II
+23JAP231,Proficiency in Japanese Language (Higher),Free Elective I
+23KAN230,Kannada I,Free Elective II
+23KAN231,Kannada II,Free Elective I
+23MAL230,Malayalam I,Free Elective II
+23MAL231,Malayalam II,Free Elective I
+23SAN230,Sanskrit I,Free Elective II
+23SAN231,Sanskrit II,Free Elective I
+23SWK230,Corporate Social Responsibility,Free Elective II
+23SWK231,Workplace Mental Health,Free Elective I
+23TAM230,Tamil I,Free Elective II
+23TAM231,Tamil II,Free Elective I
+23MNG331,Financial Management,Free Elective II
+23MNG332,Supply Chain Management,Free Elective I
+23MNG333,Marketing Management,Free Elective II
+23MNG334,Project Management,Free Elective I
+23MNG335,Enterprise Management,Free Elective II
+23MNG336,Operations Research,Free Elective I
+23MEE321,Industrial Engineering,Free Elective II
+23MEE322,Managerial Statistics,Free Elective I
+23MEE323,Total Quality Management,Free Elective II
+23MEE324,Lean Manufacturing,Free Elective I
+23CSE321,Software Project Management,Free Elective II
+23CSE322,Financial Engineering,Free Elective I
+23CSE323,Engineering Economic Analysis,Free Elective II
+23CSE324,Information Systems,Free Elective I
+23CSE451,Graph Mining,Professional Elective I
+23CSE452,Business Analytics,Professional Elective II
+23CSE453,Competitive Programming,Professional Elective III
+23CSE454,Concurrent Programming,Professional Elective IV
+23CSE455,Design Patterns,Professional Elective V
+23CSE456,Domain Specific Languages,Professional Elective VI
+23CSE457,Elements of Computing,Professional Elective I
+23CSE458,Embedded Programming,Professional Elective II
+23CSE459,Fault Tolerant Computing Systems,Professional Elective III
+23CSE460,Features in Modern Programming Languages,Professional Elective IV
+23CSE461,Full Stack Frameworks,Professional Elective V
+23CSE462,Multimedia Communication Systems,Professional Elective VI
+23CSE463,Quantum Computing,Professional Elective I
+23CSE464,Formal Verification,Professional Elective II
+23CSE465,Mobile Application Development,Professional Elective III
+23CSE466,Parallel Programming,Professional Elective IV
+23CSE331,Cryptography,Professional Elective V
+23CSE332,Information Security,Professional Elective VI
+23CSE333,Secure Coding,Professional Elective I
+23CSE334,Cyber Forensics and Malware,Professional Elective II
+23CSE335,Blockchain and its Applications,Professional Elective III
+23CSE336,Secure Networks,Professional Elective IV
+23CSE341,Wireless Sensor Networks,Professional Elective V
+23CSE342,Advanced Computer Networks,Professional Elective VI
+23CSE343,Wireless and Mobile Networks,Professional Elective I
+23CSE344,Modern Cellular Wireless Networks,Professional Elective II
+23CSE345,Software Defined Networks,Professional Elective III
+23CSE351,Foundations of Data Science,Professional Elective IV
+23CSE352,Big Data Analytics,Professional Elective V
+23CSE353,Data Visualization,Professional Elective VI
+23CSE354,DBMS for Data Science,Professional Elective I
+23CSE355,Mining of Massive Datasets,Professional Elective II
+23CSE356,Social Network Analytics,Professional Elective III
+23CSE357,Time Series Analysis and Forecasting,Professional Elective IV
+23CSE361,Real Time OS for Cyber Physical Systems,Professional Elective V
+23CSE362,Edge Computing,Professional Elective VI
+23CSE363,Cloud Computing,Professional Elective I
+23CSE364,Cyber Physical Systems,Professional Elective II
+23CSE365,Internet of Things,Professional Elective III
+23CSE371,Digital Image Processing,Professional Elective IV
+23CSE372,Computer Graphics and Animation,Professional Elective V
+23CSE373,Computer Vision,Professional Elective VI
+23CSE374,Video Analysis,Professional Elective I
+23CSE375,Augmented and Virtual Reality,Professional Elective II
+23CSE470,Semantic Web,Professional Elective III
+23CSE471,Natural Language Processing,Professional Elective IV
+23CSE472,Artificial Intelligence and Robotics,Professional Elective V
+23CSE473,Neural Networks and Deep Learning,Professional Elective VI
+23CSE474,Computational Intelligence,Professional Elective I
+23CSE475,Generative AI,Professional Elective II
+23CSE476,Conversational AI,Professional Elective III
+23CSE477,Reinforcement Learning,Professional Elective IV
+23CSE478,Drones and Robotics,Professional Elective V
+23CSE479,Machine Learning with Graphs,Professional Elective VI
+23CSE480,AI for Industrial Decision Making,Professional Elective I
