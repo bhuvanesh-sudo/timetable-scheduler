@@ -596,7 +596,7 @@ def publish_schedule(request, schedule_id):
 
     # Build a dict of teacher_id -> set of entry tuples for the NEW schedule
     def build_teacher_entries_map(entries):
-        """Build {teacher_id: set of (day, slot, course_id, room_id, section_id)} tuples."""
+        """Build {teacher_id: set of (day, slot, course_id, room_id, section_id, is_lab)} tuples."""
         teacher_map = {}
         for entry in entries:
             key = (
@@ -613,12 +613,37 @@ def publish_schedule(request, schedule_id):
     new_map = build_teacher_entries_map(new_entries)
     notifications_created = 0
 
+    # Save the snapshot to the current schedule so future publishes can compare against it
+    snapshot_data = {}
+    for teacher_id, entries_set in new_map.items():
+        snapshot_data[teacher_id] = [
+            {
+                'day': e[0], 
+                'slot': e[1], 
+                'course': e[2], 
+                'room': e[3], 
+                'section': e[4], 
+                'is_lab': e[5]
+            } for e in entries_set
+        ]
+    schedule.published_snapshot = snapshot_data
+    schedule.save(update_fields=['published_snapshot'])
+
     if previous_schedule:
-        # Compare against old schedule
-        old_entries = ScheduleEntry.objects.filter(
-            schedule=previous_schedule
-        ).select_related('course', 'teacher', 'room', 'timeslot', 'section')
-        old_map = build_teacher_entries_map(old_entries)
+        # Compare against old schedule using its frozen snapshot
+        old_map = {}
+        if previous_schedule.published_snapshot:
+            for teacher_id, entries_list in previous_schedule.published_snapshot.items():
+                old_map[teacher_id] = set(
+                    (e['day'], e['slot'], e['course'], e['room'], e['section'], e['is_lab'])
+                    for e in entries_list
+                )
+        else:
+            # Fallback for schedules published before this feature was added
+            old_entries = ScheduleEntry.objects.filter(
+                schedule=previous_schedule
+            ).select_related('course', 'teacher', 'room', 'timeslot', 'section')
+            old_map = build_teacher_entries_map(old_entries)
 
         # Find all teachers in either old or new schedule
         all_teacher_ids = set(new_map.keys()) | set(old_map.keys())

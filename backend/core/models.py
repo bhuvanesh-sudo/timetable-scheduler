@@ -366,6 +366,11 @@ class Schedule(models.Model):
         blank=True,
         validators=[MinValueValidator(0), MaxValueValidator(100)]
     )
+    published_snapshot = models.JSONField(
+        null=True, 
+        blank=True, 
+        help_text="Snapshot of the schedule layout when it was published. Used to detect changes even if underlying entries are deleted."
+    )
     
     class Meta:
         db_table = 'schedules'
