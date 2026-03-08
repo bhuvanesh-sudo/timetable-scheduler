@@ -11,7 +11,7 @@
  * Sprint: 2
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { scheduleAPI, schedulerAPI, sectionAPI, teacherAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import jsPDF from 'jspdf';
@@ -191,6 +191,14 @@ function ViewTimetable() {
                 rowData.push(cellContent);
             });
             tableRows.push(rowData);
+
+            // Add breaks to PDF
+            if (slot === 2) {
+                tableRows.push(["10:30-10:45", "INTERVAL", "INTERVAL", "INTERVAL", "INTERVAL", "INTERVAL"]);
+            }
+            if (slot === 5) {
+                tableRows.push(["13:15-14:05", "LUNCH BREAK", "LUNCH BREAK", "LUNCH BREAK", "LUNCH BREAK", "LUNCH BREAK"]);
+            }
         });
 
         autoTable(doc, {
@@ -599,9 +607,12 @@ function ViewTimetable() {
 
                         {/* Time Slots */}
                         {SLOTS.map((slot) => (
-                            <>
+                            <React.Fragment key={`slot-row-${slot}`}>
                                 <div key={`time-${slot}`} className="grid-time">
-                                    <div>Slot {slot}</div>
+                                    <div style={{ fontWeight: 700, color: 'var(--primary)' }}>Slot {slot}</div>
+                                    <div style={{ fontSize: '0.65rem', opacity: 0.7 }}>
+                                        {Object.values(timetable || {}).find(d => d[slot])?.[slot]?.[0]?.time || ''}
+                                    </div>
                                 </div>
                                 {DAYS.map((day) => {
                                     const cellKey = `${day}-${slot}`;
@@ -719,7 +730,25 @@ function ViewTimetable() {
                                         </div>
                                     );
                                 })}
-                            </>
+
+                                {/* Break Markers */}
+                                {slot === 2 && (
+                                    <>
+                                        <div className="grid-break-time">10:30-10:45</div>
+                                        {DAYS.map(day => (
+                                            <div key={`interval-${day}`} className="grid-break">INTERVAL</div>
+                                        ))}
+                                    </>
+                                )}
+                                {slot === 5 && (
+                                    <>
+                                        <div className="grid-break-time">13:15-14:05</div>
+                                        {DAYS.map(day => (
+                                            <div key={`lunch-${day}`} className="grid-break">LUNCH BREAK</div>
+                                        ))}
+                                    </>
+                                )}
+                            </React.Fragment>
                         ))}
                     </div>
                 </div>
