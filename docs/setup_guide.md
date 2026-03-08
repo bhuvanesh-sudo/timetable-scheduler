@@ -1,40 +1,66 @@
-# M3 Timetable System - Teammate Setup Guide 🚀
+# 🚀 M3 Timetable Project Setup Guide
 
-To get this project running on your device after cloning, follow these two command sequences:
+Follow these exact steps after cloning the repository to get the system running on your local machine.
 
-### 1. Backend (Terminal 1)
+## 💻 Terminal Commands
+
+### 🔌 Terminal 1: Backend Server
 ```bash
+# Navigate to backend
 cd backend
+
+# Create and activate virtual environment
 python3 -m venv venv
-source venv/bin/activate  # Windows: venv\\Scripts\\activate
-pip install -r requirements.txt
+source venv/bin/activate
 
-# Create your .env file from the example
-cp timetable_project/.env.example timetable_project/.env
-# IMPORTANT: Open timetable_project/.env and add your Gmail App Password & Google Client ID!
+# Install dependencies
+pip3 install -r requirements.txt
 
-# Setup Database & Standard Users
-python manage.py migrate
-python manage.py import_data          # Link CSV data
-python manage.py setup_standard_users # Reset/Create dev logins
-python manage.py runserver
+# Setup environment variables
+cp .env.example .env
+# (Note: Update backend/.env with the Secrets provided below)
+
+# Initialize Databases
+python3 manage.py migrate
+python3 manage.py migrate --database=audit_db
+
+# Import Datasets & Setup Users
+python3 manage.py import_data --clear
+python3 manage.py setup_standard_users
+
+# Run the server
+python3 manage.py runserver
 ```
 
-### 2. Frontend (Terminal 2)
+### ⚙️ Terminal 2: Celery Worker
 ```bash
+# Navigate to backend and activate venv
+cd backend
+source venv/bin/activate
+
+# Start the background task worker
+celery -A timetable_project worker --loglevel=ERROR
+```
+
+### 🎨 Terminal 3: Frontend Web App
+```bash
+# Navigate to frontend
 cd frontend
+
+# Install dependencies
 npm install
 
-# Create your .env file
+# Setup environment variables
 cp .env.example .env
-# IMPORTANT: Open .env and add your VITE_GOOGLE_CLIENT_ID!
+# (Note: Update frontend/.env with the Google Client ID provided below)
 
+# Run the development server
 npm run dev
 ```
 
 ---
 
-### 🔑 Default Credentials
+## 🔑 Default Login Credentials
 
 | Role | Username | Password |
 | :--- | :--- | :--- |
@@ -42,5 +68,14 @@ npm run dev
 | **HOD** | `hod` | `hod123` |
 | **Faculty** | `T001` (up to `T086`) | `faculty123` |
 
-> [!TIP]
-> **Faculty Login**: Use the Teacher ID (e.g., `T001`) as the username. The system handles the "Welcome [Full Name]" logic automatically!
+---
+
+## 🛡️ Required Secrets (.env)
+
+**Backend Settings (`backend/.env`):**
+- **Gmail**: `m3amrita@gmail.com`
+- **SMTP Password**: `m3password`
+- **Google Client ID**: `501564234185-nn61nqv9vukrbgajpqgq6tdo3o3bh70v.apps.googleusercontent.com`
+
+**Frontend Settings (`frontend/.env`):**
+- **Vite Google Client ID**: `501564234185-nn61nqv9vukrbgajpqgq6tdo3o3bh70v.apps.googleusercontent.com`
