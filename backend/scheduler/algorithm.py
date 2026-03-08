@@ -162,8 +162,9 @@ class TimetableScheduler:
 
                 mappings = list(TeacherCourseMapping.objects.filter(
                     course=course
-                ).select_related('teacher').order_by('-preference_level'))
+                ).select_related('teacher').order_by('preference_level'))
 
+                teacher_prefs = {m.teacher.teacher_id: m.preference_level for m in mappings}
                 seen = set()
                 pool = []
                 for m in mappings:
@@ -175,7 +176,8 @@ class TimetableScheduler:
                 if not pool:
                     pool = list(Teacher.objects.all())
 
-                pool.sort(key=lambda t: teacher_load[t.teacher_id])
+                # Priority 1: preference_level (1 is High), Priority 2: current load (Least loaded first)
+                pool.sort(key=lambda t: (teacher_prefs.get(t.teacher_id, 3), teacher_load[t.teacher_id]))
 
                 for section in year_sections:
                     key = (course.course_id, section.class_id)

@@ -33,6 +33,9 @@ function DataManagement() {
     const [showAddForm, setShowAddForm] = useState(false);
     const [newRecord, setNewRecord] = useState({});
 
+    // Sorting state
+    const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+
     // CSV Import state
     const [showImportModal, setShowImportModal] = useState(false);
     const [csvFile, setCsvFile] = useState(null);
@@ -163,17 +166,48 @@ function DataManagement() {
         }
     };
 
+    const requestSort = (key) => {
+        let direction = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
     // Helper functions
     const getCurrentData = () => {
+        let data = [];
         switch (activeTab) {
-            case 'teachers': return teachers;
-            case 'courses': return courses;
-            case 'rooms': return rooms;
-            case 'sections': return sections;
-            case 'mappings': return mappings;
-            case 'timeslots': return timeslots;
-            default: return [];
+            case 'teachers': data = [...teachers]; break;
+            case 'courses': data = [...courses]; break;
+            case 'rooms': data = [...rooms]; break;
+            case 'sections': data = [...sections]; break;
+            case 'mappings': data = [...mappings]; break;
+            case 'timeslots': data = [...timeslots]; break;
+            default: data = [];
         }
+
+        if (sortConfig.key) {
+            data.sort((a, b) => {
+                const aValue = a[sortConfig.key];
+                const bValue = b[sortConfig.key];
+
+                if (aValue < bValue) {
+                    return sortConfig.direction === 'asc' ? -1 : 1;
+                }
+                if (aValue > bValue) {
+                    return sortConfig.direction === 'asc' ? 1 : -1;
+                }
+                return 0;
+            });
+        }
+
+        return data;
+    };
+
+    const getSortIndicator = (key) => {
+        if (sortConfig.key !== key) return ' ⇅';
+        return sortConfig.direction === 'asc' ? ' ▲' : ' ▼';
     };
 
     const getActiveAPI = () => {
@@ -184,7 +218,7 @@ function DataManagement() {
             case 'sections': return sectionAPI;
             case 'mappings': return teacherCourseMappingAPI;
             case 'timeslots': return timeslotAPI;
-            default: return teacherAPI;
+            default: return null;
         }
     };
 
@@ -512,15 +546,25 @@ function DataManagement() {
                                             onChange={toggleSelectAll}
                                         />
                                     </th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Teacher ID</th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Name</th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Email</th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Department</th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Max Hours/Week</th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd', cursor: 'pointer' }} onClick={() => requestSort('teacher_id')}>
+                                        Teacher ID{getSortIndicator('teacher_id')}
+                                    </th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd', cursor: 'pointer' }} onClick={() => requestSort('teacher_name')}>
+                                        Name{getSortIndicator('teacher_name')}
+                                    </th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd', cursor: 'pointer' }} onClick={() => requestSort('email')}>
+                                        Email{getSortIndicator('email')}
+                                    </th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd', cursor: 'pointer' }} onClick={() => requestSort('department')}>
+                                        Department{getSortIndicator('department')}
+                                    </th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd', cursor: 'pointer' }} onClick={() => requestSort('max_hours_per_week')}>
+                                        Max Hours/Week{getSortIndicator('max_hours_per_week')}
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {teachers.map((teacher) => (
+                                {getCurrentData().map((teacher) => (
                                     <tr key={teacher.teacher_id} style={{ borderBottom: '1px solid #eee' }}>
                                         <td style={{ padding: '12px' }}>
                                             <input
@@ -550,16 +594,28 @@ function DataManagement() {
                                     <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>
                                         <input type="checkbox" checked={selectedItems.size === courses.length && courses.length > 0} onChange={toggleSelectAll} />
                                     </th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Course ID</th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Course Name</th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Year</th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Semester</th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Credits</th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Weekly Slots</th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd', cursor: 'pointer' }} onClick={() => requestSort('course_id')}>
+                                        Course ID{getSortIndicator('course_id')}
+                                    </th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd', cursor: 'pointer' }} onClick={() => requestSort('course_name')}>
+                                        Course Name{getSortIndicator('course_name')}
+                                    </th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd', cursor: 'pointer' }} onClick={() => requestSort('year')}>
+                                        Year{getSortIndicator('year')}
+                                    </th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd', cursor: 'pointer' }} onClick={() => requestSort('semester')}>
+                                        Semester{getSortIndicator('semester')}
+                                    </th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd', cursor: 'pointer' }} onClick={() => requestSort('credits')}>
+                                        Credits{getSortIndicator('credits')}
+                                    </th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd', cursor: 'pointer' }} onClick={() => requestSort('weekly_slots')}>
+                                        Weekly Slots{getSortIndicator('weekly_slots')}
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {courses.map((course) => (
+                                {getCurrentData().map((course) => (
                                     <tr key={course.course_id} style={{ borderBottom: '1px solid #eee' }}>
                                         <td style={{ padding: '12px' }}>
                                             <input type="checkbox" checked={selectedItems.has(course.course_id)} onChange={() => toggleSelection(course.course_id)} />
@@ -586,14 +642,22 @@ function DataManagement() {
                                     <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>
                                         <input type="checkbox" checked={selectedItems.size === rooms.length && rooms.length > 0} onChange={toggleSelectAll} />
                                     </th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Room ID</th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Block</th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Floor</th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Type</th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd', cursor: 'pointer' }} onClick={() => requestSort('room_id')}>
+                                        Room ID{getSortIndicator('room_id')}
+                                    </th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd', cursor: 'pointer' }} onClick={() => requestSort('block')}>
+                                        Block{getSortIndicator('block')}
+                                    </th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd', cursor: 'pointer' }} onClick={() => requestSort('floor')}>
+                                        Floor{getSortIndicator('floor')}
+                                    </th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd', cursor: 'pointer' }} onClick={() => requestSort('room_type')}>
+                                        Type{getSortIndicator('room_type')}
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {rooms.map((room) => (
+                                {getCurrentData().map((room) => (
                                     <tr key={room.room_id} style={{ borderBottom: '1px solid #eee' }}>
                                         <td style={{ padding: '12px' }}>
                                             <input type="checkbox" checked={selectedItems.has(room.room_id)} onChange={() => toggleSelection(room.room_id)} />
@@ -618,14 +682,22 @@ function DataManagement() {
                                     <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>
                                         <input type="checkbox" checked={selectedItems.size === sections.length && sections.length > 0} onChange={toggleSelectAll} />
                                     </th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Class ID</th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Year</th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Section</th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Department</th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd', cursor: 'pointer' }} onClick={() => requestSort('class_id')}>
+                                        Class ID{getSortIndicator('class_id')}
+                                    </th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd', cursor: 'pointer' }} onClick={() => requestSort('year')}>
+                                        Year{getSortIndicator('year')}
+                                    </th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd', cursor: 'pointer' }} onClick={() => requestSort('section')}>
+                                        Section{getSortIndicator('section')}
+                                    </th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd', cursor: 'pointer' }} onClick={() => requestSort('department')}>
+                                        Department{getSortIndicator('department')}
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {sections.map((section) => (
+                                {getCurrentData().map((section) => (
                                     <tr key={section.class_id} style={{ borderBottom: '1px solid #eee' }}>
                                         <td style={{ padding: '12px' }}>
                                             <input type="checkbox" checked={selectedItems.has(section.class_id)} onChange={() => toggleSelection(section.class_id)} />
@@ -650,14 +722,22 @@ function DataManagement() {
                                     <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>
                                         <input type="checkbox" checked={selectedItems.size === mappings.length && mappings.length > 0} onChange={toggleSelectAll} />
                                     </th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>ID</th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Teacher</th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Course</th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Preference</th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd', cursor: 'pointer' }} onClick={() => requestSort('id')}>
+                                        ID{getSortIndicator('id')}
+                                    </th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd', cursor: 'pointer' }} onClick={() => requestSort('teacher_name')}>
+                                        Teacher{getSortIndicator('teacher_name')}
+                                    </th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd', cursor: 'pointer' }} onClick={() => requestSort('course_name')}>
+                                        Course{getSortIndicator('course_name')}
+                                    </th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd', cursor: 'pointer' }} onClick={() => requestSort('preference_level')}>
+                                        Preference{getSortIndicator('preference_level')}
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {mappings.map((mapping) => (
+                                {getCurrentData().map((mapping) => (
                                     <tr key={mapping.id} style={{ borderBottom: '1px solid #eee' }}>
                                         <td style={{ padding: '12px' }}>
                                             <input type="checkbox" checked={selectedItems.has(mapping.id)} onChange={() => toggleSelection(mapping.id)} />
@@ -682,15 +762,25 @@ function DataManagement() {
                                     <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>
                                         <input type="checkbox" checked={selectedItems.size === timeslots.length && timeslots.length > 0} onChange={toggleSelectAll} />
                                     </th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Slot ID</th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Day</th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Slot #</th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Start Time</th>
-                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>End Time</th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd', cursor: 'pointer' }} onClick={() => requestSort('slot_id')}>
+                                        Slot ID{getSortIndicator('slot_id')}
+                                    </th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd', cursor: 'pointer' }} onClick={() => requestSort('day')}>
+                                        Day{getSortIndicator('day')}
+                                    </th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd', cursor: 'pointer' }} onClick={() => requestSort('slot_number')}>
+                                        Slot #{getSortIndicator('slot_number')}
+                                    </th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd', cursor: 'pointer' }} onClick={() => requestSort('start_time')}>
+                                        Start Time{getSortIndicator('start_time')}
+                                    </th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #ddd', cursor: 'pointer' }} onClick={() => requestSort('end_time')}>
+                                        End Time{getSortIndicator('end_time')}
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {timeslots.map((slot) => (
+                                {getCurrentData().map((slot) => (
                                     <tr key={slot.slot_id} style={{ borderBottom: '1px solid #eee' }}>
                                         <td style={{ padding: '12px' }}>
                                             <input type="checkbox" checked={selectedItems.has(slot.slot_id)} onChange={() => toggleSelection(slot.slot_id)} />

@@ -29,9 +29,9 @@ def trigger_generation(request):
     semester = request.data.get('semester')
     year = request.data.get('year')
     
-    if not semester or not year:
+    if not semester:
         return Response(
-            {"error": "semester and year are required"},
+            {"error": "semester is required"},
             status=status.HTTP_400_BAD_REQUEST
         )
     
@@ -54,6 +54,23 @@ def trigger_generation(request):
         "message": "Schedule generation queued successfully and is processing in the background.",
         "data": serializer.data
     }, status=status.HTTP_202_ACCEPTED)
+
+
+@api_view(['GET'])
+@permission_classes([IsHODOrAdmin])
+def get_schedule_status(request, schedule_id):
+    """
+    Check the current status of a schedule generation task.
+    """
+    try:
+        schedule = Schedule.objects.get(schedule_id=schedule_id)
+        serializer = ScheduleSerializer(schedule)
+        return Response(serializer.data)
+    except Schedule.DoesNotExist:
+        return Response(
+            {"error": "Schedule not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
 
 
 @api_view(['GET'])
@@ -152,6 +169,8 @@ def get_timetable_view(request):
     schedule_id = request.query_params.get('schedule_id')
     section_id = request.query_params.get('section')
     teacher_id = request.query_params.get('teacher')
+    course_id = request.query_params.get('course')
+    room_id = request.query_params.get('room')
     
     if not schedule_id:
         return Response(
@@ -166,6 +185,10 @@ def get_timetable_view(request):
         query = query.filter(section_id=section_id)
     if teacher_id:
         query = query.filter(teacher_id=teacher_id)
+    if course_id:
+        query = query.filter(course_id=course_id)
+    if room_id:
+        query = query.filter(room_id=room_id)
     
     # Get entries with related data
     entries = query.select_related(

@@ -91,6 +91,7 @@ export const courseAPI = {
   delete: (id) => api.delete(`/courses/${id}/`),
   byYear: (year) => api.get(`/courses/by_year/?year=${year}`),
   bySemester: (sem) => api.get(`/courses/by_semester/?semester=${sem}`),
+  byDepartment: (dept) => api.get(`/courses/by_department/?department=${dept}`),
 };
 
 export const roomAPI = {
@@ -109,6 +110,7 @@ export const sectionAPI = {
   update: (id, data) => api.put(`/sections/${id}/`, data),
   delete: (id) => api.delete(`/sections/${id}/`),
   byYear: (year) => api.get(`/sections/by_year/?year=${year}`),
+  byDepartment: (dept) => api.get(`/sections/by_department/?department=${dept}`),
 };
 
 export const teacherCourseMappingAPI = {
@@ -117,6 +119,7 @@ export const teacherCourseMappingAPI = {
   create: (data) => api.post('/teacher-course-mappings/', data),
   update: (id, data) => api.put(`/teacher-course-mappings/${id}/`, data),
   delete: (id) => api.delete(`/teacher-course-mappings/${id}/`),
+  byTeacher: (teacherId) => api.get(`/teacher-course-mappings/by_teacher/?teacher_id=${teacherId}`),
 };
 
 export const timeslotAPI = {
@@ -135,6 +138,7 @@ export const scheduleAPI = {
   delete: (id) => api.delete(`/schedules/${id}/`),
   getEntries: (id) => api.get(`/schedules/${id}/entries/`),
   getConflicts: (id) => api.get(`/schedules/${id}/conflicts/`),
+  getFilters: (id) => api.get(`/schedules/${id}/filters/`),
 };
 
 
@@ -153,16 +157,19 @@ export const schedulerAPI = {
   generate: (data) => api.post('/scheduler/generate', data),
   getWorkload: (scheduleId) => api.get(`/scheduler/analytics/workload?schedule_id=${scheduleId}`),
   getRoomUtilization: (scheduleId) => api.get(`/scheduler/analytics/rooms?schedule_id=${scheduleId}`),
-  getTimetable: (scheduleId, section = null, teacher = null) => {
+  getTimetable: (scheduleId, section = null, teacher = null, course = null, room = null) => {
     let url = `/scheduler/timetable?schedule_id=${scheduleId}`;
     if (section) url += `&section=${section}`;
     if (teacher) url += `&teacher=${teacher}`;
+    if (course) url += `&course=${course}`;
+    if (room) url += `&room=${room}`;
     return api.get(url);
   },
   validateSchedule: (scheduleId) => api.get(`/scheduler/validate/${scheduleId}/`),
   validateMove: (entryId, targetDay, targetSlot) =>
     api.get(`/scheduler/validate-move?entry_id=${entryId}&target_day=${targetDay}&target_slot=${targetSlot}`),
   moveEntry: (data) => api.post('/scheduler/move-entry', data),
+  getStatus: (scheduleId) => api.get(`/scheduler/status/${scheduleId}/`),
   publish: (scheduleId) => api.post(`/scheduler/publish/${scheduleId}/`),
 };
 

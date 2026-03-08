@@ -12,7 +12,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { scheduleAPI, schedulerAPI, sectionAPI, teacherAPI } from '../services/api';
+import { scheduleAPI, schedulerAPI, sectionAPI, teacherAPI, courseAPI, roomAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -40,9 +40,13 @@ function ViewTimetable() {
     const [schedules, setSchedules] = useState([]);
     const [sections, setSections] = useState([]);
     const [teachers, setTeachers] = useState([]);
+    const [courses, setCourses] = useState([]);
+    const [rooms, setRooms] = useState([]);
     const [selectedSchedule, setSelectedSchedule] = useState('');
     const [selectedSection, setSelectedSection] = useState('');
     const [selectedTeacher, setSelectedTeacher] = useState('');
+    const [selectedCourse, setSelectedCourse] = useState('');
+    const [selectedRoom, setSelectedRoom] = useState('');
     const [timetable, setTimetable] = useState(null);
     const [loading, setLoading] = useState(false);
 
@@ -76,21 +80,58 @@ function ViewTimetable() {
 
     const loadInitialData = async () => {
         try {
-            const promises = [scheduleAPI.getAll(), sectionAPI.getAll()];
-            if (user && (user.role === 'ADMIN' || user.role === 'HOD')) {
+            console.log("Loading initial data for ViewTimetable...", { userRole: user?.role });
+            const promises = [
+                scheduleAPI.getAll(),
+                sectionAPI.getAll(),
+                courseAPI.getAll(),
+                roomAPI.getAll()
+            ];
+
+            const isAdminOrHODCheck = user && (user.role === 'ADMIN' || user.role === 'HOD');
+            if (isAdminOrHODCheck) {
                 promises.push(teacherAPI.getAll());
             }
-            const [schedulesRes, sectionsRes, teachersRes] = await Promise.all(promises);
-            setSchedules(schedulesRes.data.results || schedulesRes.data || []);
-            setSections(sectionsRes.data.results || sectionsRes.data || []);
-            if (teachersRes) setTeachers(teachersRes.data.results || teachersRes.data || []);
 
-            if (user?.role === 'FACULTY' && !selectedSchedule) {
-                const avail = schedulesRes.data.results || schedulesRes.data || [];
+            const results = await Promise.allSettled(promises);
+
+            // Log any failures
+            results.forEach((result, index) => {
+                if (result.status === 'rejected') {
+                    console.error(`Promise ${index} failed:`, result.reason);
+                }
+            });
+
+            // Process results
+            if (results[0].status === 'fulfilled') {
+                const res = results[0].value;
+                setSchedules(res.data.results || res.data || []);
+                console.log("Schedules loaded:", (res.data.results || res.data || []).length);
+            }
+            if (results[1].status === 'fulfilled') {
+                const res = results[1].value;
+                setSections(res.data.results || res.data || []);
+            }
+            if (results[2].status === 'fulfilled') {
+                const res = results[2].value;
+                setCourses(res.data.results || res.data || []);
+            }
+            if (results[3].status === 'fulfilled') {
+                const res = results[3].value;
+                setRooms(res.data.results || res.data || []);
+            }
+            if (isAdminOrHODCheck && results[4] && results[4].status === 'fulfilled') {
+                const res = results[4].value;
+                setTeachers(res.data.results || res.data || []);
+            }
+
+            // Default selection for Faculty
+            if (user?.role === 'FACULTY' && !selectedSchedule && results[0].status === 'fulfilled') {
+                const avail = results[0].value.data.results || results[0].value.data || [];
                 if (avail.length > 0) setSelectedSchedule(avail[0].schedule_id);
             }
         } catch (error) {
-            console.error('Error loading data:', error);
+            console.error('Fatal error in loadInitialData:', error);
         }
     };
 
@@ -100,7 +141,11 @@ function ViewTimetable() {
         try {
             const teacherId = (user && user.role === 'FACULTY') ? user.teacher_id : selectedTeacher;
             const response = await schedulerAPI.getTimetable(
-                selectedSchedule, selectedSection || null, teacherId || null
+                selectedSchedule,
+                selectedSection || null,
+                teacherId || null,
+                selectedCourse || null,
+                selectedRoom || null
             );
             setTimetable(response.data);
             // Reset DnD state when timetable is (re)loaded
@@ -115,8 +160,43 @@ function ViewTimetable() {
     };
 
     useEffect(() => {
+        if (selectedSchedule) {
+            loadTimetable();
+            loadSmartFilters();
+        } else {
+            // If no schedule selected, reset to all data from initial load
+            loadInitialData();
+        }
+    }, [selectedSchedule]);
+
+    // Use separate effect for sub-filters to trigger reload
+    useEffect(() => {
         if (selectedSchedule) loadTimetable();
-    }, [selectedSchedule, selectedSection, selectedTeacher]);
+    }, [selectedSection, selectedTeacher, selectedCourse, selectedRoom]);
+
+    const loadSmartFilters = async () => {
+        if (!selectedSchedule) return;
+        try {
+            const response = await scheduleAPI.getFilters(selectedSchedule);
+            const { sections: s, teachers: t, courses: c, rooms: r } = response.data;
+
+            setSections(s.map(i => ({ class_id: i.class_id })));
+            setTeachers(t);
+            setCourses(c);
+            setRooms(r.map(i => ({ room_id: i.room_id, block: i.block })));
+
+            // Reset current selections if they are not in the new filtered lists
+            if (selectedSection && !s.some(i => i.class_id === selectedSection)) setSelectedSection('');
+            if (selectedTeacher && !t.some(i => i.teacher_id === selectedTeacher)) {
+                if (user?.role !== 'FACULTY') setSelectedTeacher('');
+            }
+            if (selectedCourse && !c.some(i => i.course_id === selectedCourse)) setSelectedCourse('');
+            if (selectedRoom && !r.some(i => i.room_id === selectedRoom)) setSelectedRoom('');
+
+        } catch (error) {
+            console.error('Error loading smart filters:', error);
+        }
+    };
 
     // ── Verify ──
     const handleVerifySchedule = async () => {
@@ -173,6 +253,11 @@ function ViewTimetable() {
         doc.setFontSize(11);
         let subtitle = '';
         if (selectedSection) subtitle += `Section: ${selectedSection}  `;
+        if (selectedCourse) {
+            const cName = courses.find(c => c.course_id === selectedCourse)?.course_name || selectedCourse;
+            subtitle += `Course: ${cName}  `;
+        }
+        if (selectedRoom) subtitle += `Room: ${selectedRoom}  `;
         if (selectedTeacher && user?.role !== 'FACULTY') {
             const tName = teachers.find(t => t.teacher_id === selectedTeacher)?.teacher_name || selectedTeacher;
             subtitle += `Teacher: ${tName}`;
@@ -459,7 +544,7 @@ function ViewTimetable() {
                             <option value="">-- Select Schedule --</option>
                             {schedules.map((schedule) => (
                                 <option key={schedule.schedule_id} value={schedule.schedule_id}>
-                                    {schedule.name} (Year {schedule.year}, {schedule.semester})
+                                    {schedule.name} ({schedule.year ? `Year ${schedule.year}` : 'All Years'}, {schedule.semester})
                                 </option>
                             ))}
                         </select>
@@ -535,7 +620,7 @@ function ViewTimetable() {
                     {/* Teacher Filter — Only for Admin/HOD */}
                     {isAdminOrHOD && (
                         <div className="filter-group">
-                            <label className="filter-label">Filter by Teacher (Optional)</label>
+                            <label className="filter-label">Filter by Teacher</label>
                             <select
                                 className="filter-select"
                                 value={selectedTeacher}
@@ -550,6 +635,40 @@ function ViewTimetable() {
                             </select>
                         </div>
                     )}
+
+                    {/* Course Filter */}
+                    <div className="filter-group">
+                        <label className="filter-label">Filter by Course</label>
+                        <select
+                            className="filter-select"
+                            value={selectedCourse}
+                            onChange={(e) => setSelectedCourse(e.target.value)}
+                        >
+                            <option value="">All Courses</option>
+                            {courses.map((course) => (
+                                <option key={course.course_id} value={course.course_id}>
+                                    [{course.course_id}] {course.course_name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Room Filter */}
+                    <div className="filter-group">
+                        <label className="filter-label">Filter by Room</label>
+                        <select
+                            className="filter-select"
+                            value={selectedRoom}
+                            onChange={(e) => setSelectedRoom(e.target.value)}
+                        >
+                            <option value="">All Rooms</option>
+                            {rooms.map((room) => (
+                                <option key={room.room_id} value={room.room_id}>
+                                    {room.room_id} ({room.block})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -580,6 +699,16 @@ function ViewTimetable() {
                             {(selectedTeacher && user?.role !== 'FACULTY') && (
                                 <span className="badge-pill badge-info">
                                     Teacher: {teachers.find(t => t.teacher_id === selectedTeacher)?.teacher_name || selectedTeacher}
+                                </span>
+                            )}
+                            {selectedCourse && (
+                                <span className="badge-pill badge-info">
+                                    Course: {selectedCourse}
+                                </span>
+                            )}
+                            {selectedRoom && (
+                                <span className="badge-pill badge-info">
+                                    Room: {selectedRoom}
                                 </span>
                             )}
                             {isAdminOrHOD && (

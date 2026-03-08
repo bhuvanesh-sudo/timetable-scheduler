@@ -59,7 +59,7 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "PASTE_YOUR_RE
 const MainLayout = ({ children }) => {
   // Extract user data and logout function from the global AuthContext
   const { user, logout } = useAuth();
-  
+
   // Extract current theme state and theme toggler from the global ThemeContext
   const { theme, toggleTheme } = useTheme();
 
@@ -143,7 +143,7 @@ const MainLayout = ({ children }) => {
               <>
                 <li className="nav-item">
                   <Link to="/teacher-requests" className="nav-link">
-                    Teacher Requests
+                    Faculty Management
                   </Link>
                 </li>
                 <li className="nav-item">
@@ -204,19 +204,19 @@ const MainLayout = ({ children }) => {
         This section takes up the remaining screen space to the right of the sidebar.
       */}
       <main className="main-content">
-        
+
         {/* Top Header Bar spanning the width of the main content window */}
         <header className="top-bar">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px' }}>
-            
+
             {/* Display the active user's name and role */}
             <div className="user-welcome" style={{ marginRight: '4px' }}>
               Welcome, {user?.first_name || user?.username} ({user?.role})
             </div>
-            
+
             {/* Component showing unread alerts */}
             <NotificationBell />
-            
+
             {/* Theme Toggle Switch (Dark/Light mode) */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>
@@ -264,10 +264,10 @@ function App() {
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
           {/* <AuthProvider> manages the JWT token and User session state */}
           <AuthProvider>
-            
+
             {/* <Routes> acts like a switch statement, rendering only the First matching Route */}
             <Routes>
-              
+
               {/* Public Unprotected Route: Login Page */}
               <Route path="/login" element={<Login />} />
 
@@ -278,7 +278,7 @@ function App() {
                 These routes require the user to be logged in. 
                 If not, <ProtectedRoute> will intercept and redirect to /login.
               */}
-              
+
               {/* Root URL redirects to dashboard */}
               <Route path="/" element={
                 <ProtectedRoute>
@@ -359,7 +359,7 @@ function App() {
                 If not logged in, ProtectedRoute (within Dashboard) will eventually send them to Login.
               */}
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
-              
+
             </Routes>
           </AuthProvider>
         </GoogleOAuthProvider>

@@ -1,6 +1,0 @@
-Implementation 100%, Mock systems wherever relevant for external dependencies(2) - 10 Marks
-Complete CI/CD pipeline from push, tests to deployment - 5 Marks
-User Experience - 5 Marks
-Documentation (API, User, Dev), OpenProject, Architecture + Report - 5 Marks
-Testing: Integration, Regression, End-to-end - 5 Marks
-Total - 30 Marks

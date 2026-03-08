@@ -70,7 +70,7 @@ function Analytics() {
                         <option value="">-- Select Schedule --</option>
                         {schedules.map((schedule) => (
                             <option key={schedule.schedule_id} value={schedule.schedule_id}>
-                                {schedule.name} (Year {schedule.year}, {schedule.semester})
+                                {schedule.name} ({schedule.year ? `Year ${schedule.year}` : 'All Years'}, {schedule.semester})
                             </option>
                         ))}
                     </select>

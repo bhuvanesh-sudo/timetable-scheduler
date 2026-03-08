@@ -14,7 +14,7 @@ from rest_framework.response import Response
 from django.db.models import Count, Q
 from django.utils import timezone
 from .models import (
-    Teacher, Course, Room, TimeSlot, Section,
+    User, Teacher, Course, Room, TimeSlot, Section,
     TeacherCourseMapping, Schedule, ScheduleEntry,
     Constraint, ConflictLog, ChangeRequest, Notification
 )
@@ -96,6 +96,16 @@ class CourseViewSet(viewsets.ModelViewSet):
             courses = Course.objects.filter(semester=semester)
         else:
             courses = Course.objects.all()
+        
+        serializer = self.get_serializer(courses, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def by_department(self, request):
+        """Filter courses by department"""
+        # Note: Course model doesn't have department field directly
+        # For now, return all courses or implement logic based on course_id prefix
+        courses = Course.objects.all()
         
         serializer = self.get_serializer(courses, many=True)
         return Response(serializer.data)
@@ -185,6 +195,18 @@ class SectionViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(sections, many=True)
         return Response(serializer.data)
 
+    @action(detail=False, methods=['get'])
+    def by_department(self, request):
+        """Filter sections by department"""
+        department = request.query_params.get('department', None)
+        if department:
+            sections = Section.objects.filter(department=department)
+        else:
+            sections = Section.objects.all()
+        
+        serializer = self.get_serializer(sections, many=True)
+        return Response(serializer.data)
+
 
 class TeacherCourseMappingViewSet(viewsets.ModelViewSet):
     """
@@ -195,11 +217,23 @@ class TeacherCourseMappingViewSet(viewsets.ModelViewSet):
     pagination_class = None
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
+        if self.action in ['list', 'retrieve', 'by_teacher']:
             permission_classes = [permissions.IsAuthenticated]
         else:
             permission_classes = [IsHODOrAdmin]
         return [permission() for permission in permission_classes]
+
+    @action(detail=False, methods=['get'])
+    def by_teacher(self, request):
+        """Filter mappings by teacher ID"""
+        teacher_id = request.query_params.get('teacher_id', None)
+        if teacher_id:
+            mappings = TeacherCourseMapping.objects.filter(teacher_id=teacher_id)
+        else:
+            mappings = TeacherCourseMapping.objects.all()
+        
+        serializer = self.get_serializer(mappings, many=True)
+        return Response(serializer.data)
 
 
 class ScheduleViewSet(viewsets.ModelViewSet):
@@ -236,6 +270,24 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         conflicts = schedule.conflicts.all()
         serializer = ConflictLogSerializer(conflicts, many=True)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    def filters(self, request, pk=None):
+        """Get unique sections, teachers, courses, and rooms used in this schedule"""
+        schedule = self.get_object()
+        entries = schedule.entries.all()
+        
+        sections = entries.values('section_id', 'section__class_id').distinct()
+        teachers = entries.values('teacher_id', 'teacher__teacher_name').distinct()
+        courses = entries.values('course_id', 'course__course_name').distinct()
+        rooms = entries.values('room_id', 'room__block').distinct()
+        
+        return Response({
+            'sections': [{'class_id': s['section__class_id']} for s in sections],
+            'teachers': [{'teacher_id': t['teacher_id'], 'teacher_name': t['teacher__teacher_name']} for t in teachers],
+            'courses': [{'course_id': c['course_id'], 'course_name': c['course__course_name']} for c in courses],
+            'rooms': [{'room_id': r['room_id'], 'block': r['room__block']} for r in rooms]
+        })
 
 
 class ScheduleEntryViewSet(viewsets.ModelViewSet):
@@ -338,8 +390,17 @@ class ChangeRequestViewSet(viewsets.ModelViewSet):
         return ChangeRequest.objects.none()
     
     def perform_create(self, serializer):
-        """Automatically set requested_by to current user"""
-        serializer.save(requested_by=self.request.user)
+        """Automatically set requested_by to current user and notify admins"""
+        change_request = serializer.save(requested_by=self.request.user)
+        
+        # Notify all Admins about the new request
+        admins = User.objects.filter(role='ADMIN')
+        for admin in admins:
+            Notification.objects.create(
+                recipient=admin,
+                title="New Faculty Change Request",
+                message=f"HOD {self.request.user.username} has submitted a {change_request.change_type} request for {change_request.target_model} {change_request.target_id or '(New)'}."
+            )
     
     @action(detail=False, methods=['get'])
     def pending_count(self, request):
@@ -362,18 +423,51 @@ class ChangeRequestViewSet(viewsets.ModelViewSet):
             )
         
         try:
-            # Apply the change based on type
             if change_request.target_model == 'Teacher':
-                if change_request.change_type == 'CREATE':
-                    # Create new teacher
-                    Teacher.objects.create(**change_request.proposed_data)
-                
-                elif change_request.change_type == 'UPDATE':
+                if change_request.change_type == 'UPDATE':
                     # Update existing teacher
                     teacher = Teacher.objects.get(teacher_id=change_request.target_id)
-                    for key, value in change_request.proposed_data.items():
-                        setattr(teacher, key, value)
+                    proposed_data = change_request.proposed_data.copy()
+                    
+                    # Extract mappings if present
+                    mappings = proposed_data.pop('mappings', None)
+                    
+                    # Update basic teacher fields
+                    for key, value in proposed_data.items():
+                        if hasattr(teacher, key):
+                            setattr(teacher, key, value)
                     teacher.save()
+                    
+                    # Sync course mappings if provided
+                    if mappings is not None:
+                        # Clear old mappings and replace with new ones
+                        TeacherCourseMapping.objects.filter(teacher=teacher).delete()
+                        for m_data in mappings:
+                            course = Course.objects.get(course_id=m_data['course_id'])
+                            TeacherCourseMapping.objects.create(
+                                teacher=teacher,
+                                course=course,
+                                section_id=m_data.get('section_id'),
+                                year=m_data.get('year') or course.year,
+                                preference_level=2 # Set high priority for HOD requests
+                            )
+                
+                elif change_request.change_type == 'CREATE':
+                    # Create new teacher
+                    proposed_data = change_request.proposed_data.copy()
+                    mappings = proposed_data.pop('mappings', None)
+                    teacher = Teacher.objects.create(**proposed_data)
+                    
+                    if mappings:
+                        for m_data in mappings:
+                            course = Course.objects.get(course_id=m_data['course_id'])
+                            TeacherCourseMapping.objects.create(
+                                teacher=teacher,
+                                course=course,
+                                section_id=m_data.get('section_id'),
+                                year=m_data.get('year') or course.year,
+                                preference_level=2 # Set high priority for HOD requests
+                            )
                 
                 elif change_request.change_type == 'DELETE':
                     # Delete teacher
@@ -386,6 +480,13 @@ class ChangeRequestViewSet(viewsets.ModelViewSet):
             change_request.reviewed_at = timezone.now()
             change_request.admin_notes = request.data.get('admin_notes', '')
             change_request.save()
+
+            # Notify the requesting HOD
+            Notification.objects.create(
+                recipient=change_request.requested_by,
+                title="Faculty Change Request Approved",
+                message=f"Your {change_request.change_type} request for {change_request.target_model} {change_request.target_id or '(New)'} has been approved. {f'Notes: {change_request.admin_notes}' if change_request.admin_notes else ''}"
+            )
             
             serializer = self.get_serializer(change_request)
             return Response(serializer.data)
@@ -415,6 +516,13 @@ class ChangeRequestViewSet(viewsets.ModelViewSet):
         change_request.reviewed_at = timezone.now()
         change_request.admin_notes = request.data.get('admin_notes', '')
         change_request.save()
+
+        # Notify the requesting HOD
+        Notification.objects.create(
+            recipient=change_request.requested_by,
+            title="Faculty Change Request Rejected",
+            message=f"Your {change_request.change_type} request for {change_request.target_model} {change_request.target_id or '(New)'} has been rejected. {f'Notes: {change_request.admin_notes}' if change_request.admin_notes else ''}"
+        )
         
         serializer = self.get_serializer(change_request)
         return Response(serializer.data)

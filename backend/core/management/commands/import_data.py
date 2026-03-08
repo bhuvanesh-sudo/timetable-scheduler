@@ -1,34 +1,13 @@
-"""
-Django Management Command to Import CSV Data
-
-This command imports all CSV files from the Datasets folder into the database.
-It handles teachers, courses, rooms, timeslots, sections, and ALL teacher-course mappings
-(regular, elective, and project).
-
-Usage: python manage.py import_data [--clear]
-
-Author: Backend Team (Vamsi, Akshitha)
-Sprint: 1 (updated Sprint 3)
-"""
-
-import csv
 import os
-from datetime import datetime
+import csv
+from datetime import time
 from django.core.management.base import BaseCommand
-from django.conf import settings
 from core.models import Teacher, Course, Room, TimeSlot, Section, TeacherCourseMapping
 
-
 class Command(BaseCommand):
-    help = "Import data from CSV files in the Datasets folder"
-
-    def __init__(self):
-        super().__init__()
-        # Path to the Datasets folder (two levels up from backend)
-        self.datasets_path = os.path.join(settings.BASE_DIR.parent, "Datasets")
+    help = "Import initial data from CSV files in the Datasets folder"
 
     def add_arguments(self, parser):
-        """Add command arguments"""
         parser.add_argument(
             "--clear",
             action="store_true",
@@ -36,72 +15,56 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        """Main command handler"""
-        self.stdout.write(self.style.SUCCESS("Starting data import..."))
+        self.datasets_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))),
+            "Datasets",
+        )
 
-        # Clear existing data if requested
         if options["clear"]:
             self.stdout.write(self.style.WARNING("Clearing existing data..."))
-            self.clear_data()
+            TeacherCourseMapping.objects.all().delete()
+            Teacher.objects.all().delete()
+            Course.objects.all().delete()
+            Room.objects.all().delete()
+            TimeSlot.objects.all().delete()
+            Section.objects.all().delete()
+            self.stdout.write(self.style.SUCCESS("  ✓ Data cleared"))
 
-        # Import data in order (respecting foreign key dependencies)
-        try:
-            self.import_teachers()
-            self.import_courses()
-            self.import_rooms()
-            self.import_timeslots()
-            self.import_sections()
-            self.import_teacher_course_mappings()
-
-            self.stdout.write(
-                self.style.SUCCESS("\n✓ Data import completed successfully!")
-            )
-            self.print_summary()
-
-        except Exception as e:
-            self.stdout.write(self.style.ERROR(f"\n✗ Error during import: {str(e)}"))
-            raise
-
-    def clear_data(self):
-        """Clear all existing data from tables in dependency order."""
-        from core.models import ScheduleEntry, Schedule, ConflictLog
-        # Delete in reverse FK order so constraints don't block deletion
-        ScheduleEntry.objects.all().delete()
-        Schedule.objects.all().delete()
-        ConflictLog.objects.all().delete()
-        TeacherCourseMapping.objects.all().delete()
-        Section.objects.all().delete()
-        TimeSlot.objects.all().delete()
-        Room.objects.all().delete()
-        Course.objects.all().delete()
-        Teacher.objects.all().delete()
-        self.stdout.write(self.style.SUCCESS("  Existing data cleared"))
+        self.import_teachers()
+        self.import_courses()
+        self.import_rooms()
+        self.import_timeslots()
+        self.import_sections()
+        self.import_teacher_course_mappings()
+        self.print_summary()
 
     def import_teachers(self):
-        """Import teachers from teachers1.csv and teachers2.csv"""
+        """Import teachers from teachers.csv"""
         self.stdout.write("\nImporting teachers...")
         count = 0
+        filename = "teachers.csv"
+        filepath = os.path.join(self.datasets_path, filename)
+        
+        if not os.path.exists(filepath):
+            self.stdout.write(self.style.WARNING(f"  File not found: {filename}"))
+            return
 
-        for filename in ["teachers1.csv", "teachers2.csv"]:
-            filepath = os.path.join(self.datasets_path, filename)
-            if not os.path.exists(filepath):
-                self.stdout.write(self.style.WARNING(f"  File not found: {filename}"))
-                continue
-
-            with open(filepath, "r") as file:
-                reader = csv.DictReader(file)
-                for row in reader:
-                    Teacher.objects.update_or_create(
-                        teacher_id=row["teacher_id"].strip(),
-                        defaults={
-                            "teacher_name": row["teacher_name"].strip(),
-                            "email": row["email"].strip(),
-                            "department": row["department"].strip(),
-                            "max_hours_per_week": int(row["max_hours_per_week"]),
-                        },
-                    )
-                    count += 1
-
+        with open(filepath, "r") as file:
+            content = file.read(2048)
+            file.seek(0)
+            dialect = csv.Sniffer().sniff(content) if ',' in content or '\t' in content else None
+            reader = csv.DictReader(file, dialect=dialect) if dialect else csv.DictReader(file)
+            for row in reader:
+                Teacher.objects.update_or_create(
+                    teacher_id=row["teacher_id"].strip(),
+                    defaults={
+                        "teacher_name": row["teacher_name"].strip(),
+                        "email": row["email"].strip(),
+                        "department": row["department"].strip(),
+                        "max_hours_per_week": int(row["max_hours_per_week"]),
+                    },
+                )
+                count += 1
         self.stdout.write(self.style.SUCCESS(f"  ✓ Imported {count} teachers"))
 
     def import_courses(self):
@@ -109,11 +72,14 @@ class Command(BaseCommand):
         self.stdout.write("\nImporting courses...")
         count = 0
 
-        # Import regular courses
+        # Regular courses
         filepath = os.path.join(self.datasets_path, "courses.csv")
         if os.path.exists(filepath):
             with open(filepath, "r") as file:
-                reader = csv.DictReader(file)
+                content = file.read(2048)
+                file.seek(0)
+                dialect = csv.Sniffer().sniff(content) if ',' in content or '\t' in content else None
+                reader = csv.DictReader(file, dialect=dialect) if dialect else csv.DictReader(file)
                 for row in reader:
                     Course.objects.update_or_create(
                         course_id=row["course_id"].strip(),
@@ -133,19 +99,40 @@ class Command(BaseCommand):
                     )
                     count += 1
 
-
-
-        self.stdout.write(self.style.SUCCESS(f"  ✓ Imported {count} courses"))
+        # Electives
+        filepath_electives = os.path.join(self.datasets_path, "electives.csv")
+        if os.path.exists(filepath_electives):
+            with open(filepath_electives, "r") as file:
+                content = file.read(2048)
+                file.seek(0)
+                dialect = csv.Sniffer().sniff(content) if ',' in content or '\t' in content else None
+                reader = csv.DictReader(file, dialect=dialect) if dialect else csv.DictReader(file)
+                for row in reader:
+                    Course.objects.get_or_create(
+                        course_id=row["course_id"].strip(),
+                        defaults={
+                            "course_name": row["course_name"].strip(),
+                            "year": 1,
+                            "semester": "odd",
+                            "lectures": 3,
+                            "theory": 3,
+                            "practicals": 0,
+                            "credits": 3,
+                            "is_lab": False,
+                            "is_elective": True,
+                            "weekly_slots": 3,
+                        },
+                    )
+                    count += 1
+        self.stdout.write(self.style.SUCCESS(f"  ✓ Imported {count} total courses"))
 
     def import_rooms(self):
         """Import rooms from rooms.csv"""
         self.stdout.write("\nImporting rooms...")
         filepath = os.path.join(self.datasets_path, "rooms.csv")
-
         if not os.path.exists(filepath):
             self.stdout.write(self.style.ERROR("  File not found: rooms.csv"))
             return
-
         count = 0
         with open(filepath, "r") as file:
             reader = csv.DictReader(file)
@@ -153,7 +140,6 @@ class Command(BaseCommand):
                 room_type_val = row["room_type"].upper()
                 if room_type_val == "LECTURE":
                     room_type_val = "CLASSROOM"
-
                 Room.objects.update_or_create(
                     room_id=row["room_id"].strip(),
                     defaults={
@@ -164,48 +150,41 @@ class Command(BaseCommand):
                     },
                 )
                 count += 1
-
         self.stdout.write(self.style.SUCCESS(f"  ✓ Imported {count} rooms"))
 
     def import_timeslots(self):
         """Import timeslots from timeslots.csv"""
         self.stdout.write("\nImporting timeslots...")
         filepath = os.path.join(self.datasets_path, "timeslots.csv")
-
         if not os.path.exists(filepath):
             self.stdout.write(self.style.ERROR("  File not found: timeslots.csv"))
             return
-
         count = 0
         with open(filepath, "r") as file:
             reader = csv.DictReader(file)
             for row in reader:
-                start_time = datetime.strptime(row["start_time"].strip(), "%H:%M").time()
-                end_time = datetime.strptime(row["end_time"].strip(), "%H:%M").time()
-                
+                start_h, start_m = map(int, row["start_time"].split(":"))
+                end_h, end_m = map(int, row["end_time"].split(":"))
                 TimeSlot.objects.update_or_create(
                     slot_id=row["slot_id"].strip(),
                     defaults={
                         "day": row["day"].strip(),
                         "slot_number": int(row["slot_number"]),
-                        "start_time": start_time,
-                        "end_time": end_time,
+                        "start_time": time(start_h, start_m),
+                        "end_time": time(end_h, end_m),
                     },
                 )
                 count += 1
-
         self.stdout.write(self.style.SUCCESS(f"  ✓ Imported {count} timeslots"))
 
     def import_sections(self):
         """Import sections from classes.csv"""
         self.stdout.write("\nImporting sections...")
-        count = 0
-
         filepath = os.path.join(self.datasets_path, "classes.csv")
         if not os.path.exists(filepath):
             self.stdout.write(self.style.ERROR("  File not found: classes.csv"))
             return
-
+        count = 0
         with open(filepath, "r") as file:
             reader = csv.DictReader(file)
             for row in reader:
@@ -218,32 +197,18 @@ class Command(BaseCommand):
                     },
                 )
                 count += 1
-
         self.stdout.write(self.style.SUCCESS(f"  ✓ Imported {count} sections"))
 
     def import_teacher_course_mappings(self):
-        """
-        Import teacher-course mappings from all 6 mapping files.
-
-        File types and their semantics:
-          mappingo.csv  — regular section-level mappings (ODD semester)
-          mappinge.csv  — regular section-level mappings (EVEN semester)
-          mappingoe.csv — elective year-level mappings (ODD semester)
-          mappingee.csv — elective year-level mappings (EVEN semester)
-          mappingop.csv — project domain-level mappings (ODD semester)
-          mappingep.csv — project domain-level mappings (EVEN semester)
-        """
+        """Import mappings from oddMapping.csv and evenMapping.csv"""
         self.stdout.write("\nImporting teacher-course mappings...")
         count = 0
         skipped = 0
-
-        # ── 1. Regular section-level mappings (columns: class_id, course_id, teacher_id, …)
-        for filename in ["mapping1.csv", "mapping2.csv"]:
+        for filename in ["oddMapping.csv", "evenMapping.csv"]:
             filepath = os.path.join(self.datasets_path, filename)
             if not os.path.exists(filepath):
                 self.stdout.write(self.style.WARNING(f"  File not found: {filename}"))
                 continue
-
             with open(filepath, "r") as file:
                 reader = csv.DictReader(file)
                 for row in reader:
@@ -252,7 +217,6 @@ class Command(BaseCommand):
                     try:
                         teacher = Teacher.objects.get(teacher_id=row["teacher_id"].strip())
                         course = Course.objects.get(course_id=row["course_id"].strip())
-
                         TeacherCourseMapping.objects.update_or_create(
                             teacher=teacher,
                             course=course,
@@ -261,22 +225,9 @@ class Command(BaseCommand):
                             defaults={"preference_level": 3},
                         )
                         count += 1
-                    except (Teacher.DoesNotExist, Course.DoesNotExist) as e:
-                        self.stdout.write(
-                            self.style.WARNING(
-                                f"  [{filename}] Skipping {row.get('teacher_id')} -> "
-                                f"{row.get('course_id')}: {str(e)}"
-                            )
-                        )
+                    except (Teacher.DoesNotExist, Course.DoesNotExist):
                         skipped += 1
-
-
-
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"  ✓ Imported {count} teacher-course mappings ({skipped} skipped)"
-            )
-        )
+        self.stdout.write(self.style.SUCCESS(f"  ✓ Imported {count} mappings (Skipped {skipped})"))
 
     def print_summary(self):
         """Print summary of imported data"""
@@ -288,7 +239,5 @@ class Command(BaseCommand):
         self.stdout.write(f"Rooms:                   {Room.objects.count()}")
         self.stdout.write(f"Time Slots:              {TimeSlot.objects.count()}")
         self.stdout.write(f"Sections:                {Section.objects.count()}")
-        self.stdout.write(
-            f"Teacher-Course Mappings: {TeacherCourseMapping.objects.count()}"
-        )
+        self.stdout.write(f"Mappings:                {TeacherCourseMapping.objects.count()}")
         self.stdout.write("=" * 50)

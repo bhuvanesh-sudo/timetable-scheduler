@@ -191,6 +191,13 @@ class TeacherCourseMappingSerializer(serializers.ModelSerializer):
     is_elective = serializers.BooleanField(source="course.is_elective", read_only=True)
     is_project = serializers.BooleanField(source="course.is_project", read_only=True)
 
+    section = serializers.PrimaryKeyRelatedField(
+        queryset=Section.objects.all(), 
+        required=False, 
+        allow_null=True
+    )
+    year = serializers.IntegerField(required=False, allow_null=True)
+
     class Meta:
         model = TeacherCourseMapping
         fields = [
@@ -209,6 +216,42 @@ class TeacherCourseMappingSerializer(serializers.ModelSerializer):
             "is_elective",
             "is_project",
         ]
+        validators = []  # Remove default UniqueTogetherValidator to allow optional fields
+
+    def validate(self, data):
+        """
+        Custom validation to handle optional fields and uniqueness.
+        """
+        # 1. Derive year from course if not provided
+        if 'year' not in data or data['year'] is None:
+            if 'course' in data:
+                # Use the year from the referenced Course object
+                data['year'] = data['course'].year
+        
+        # 2. Manual uniqueness check since we removed the validator
+        teacher = data.get('teacher')
+        course = data.get('course')
+        section = data.get('section')
+        year = data.get('year')
+        
+        # Check if this mapping already exists
+        # Note: We exclude the current instance for updates
+        queryset = TeacherCourseMapping.objects.filter(
+            teacher=teacher,
+            course=course,
+            section=section,
+            year=year
+        )
+        
+        if self.instance:
+            queryset = queryset.exclude(pk=self.instance.pk)
+            
+        if queryset.exists():
+            raise serializers.ValidationError(
+                "A mapping already exists for this teacher, course, section, and year."
+            )
+            
+        return data
 
 
 class ScheduleSerializer(serializers.ModelSerializer):

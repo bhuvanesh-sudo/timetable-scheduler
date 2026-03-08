@@ -35,7 +35,7 @@ class Command(BaseCommand):
                 password='hod123',
                 first_name='Head of Department', # Display Name
                 role='HOD',
-                department='GENERAL'
+                department='CSE'
             )
             self.stdout.write(self.style.SUCCESS('  Created HOD: hod / hod123'))
 
@@ -53,16 +53,17 @@ class Command(BaseCommand):
                 teacher.save()
 
                 # Create user for teacher
-                User.objects.create_user(
+                user = User.objects.create_user(
                     username=teacher.teacher_id,   # Login ID (T001 etc)
                     user_id=teacher.teacher_id,    # Unique ID
                     first_name=teacher.teacher_name, # Display Name
                     email=faculty_email,
                     password='faculty123',
                     role='FACULTY',
-                    department=teacher.department,
-                    teacher=teacher
+                    department=teacher.department
                 )
+                user.teacher = teacher
+                user.save()
                 users_created += 1
 
             self.stdout.write(self.style.SUCCESS(f'  Created {users_created} faculty accounts with password "faculty123"'))

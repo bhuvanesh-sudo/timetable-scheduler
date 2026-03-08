@@ -16,6 +16,41 @@ function GenerateSchedule() {
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
 
+    const pollStatus = async (scheduleId) => {
+        const check = async () => {
+            try {
+                const response = await schedulerAPI.getStatus(scheduleId);
+                const { status, quality_score } = response.data;
+
+                if (status === 'COMPLETED' || status === 'FAILED') {
+                    setResult({
+                        ...response.data,
+                        message: status === 'COMPLETED'
+                            ? 'Schedule generation finished successfully!'
+                            : 'Schedule generation failed. Please check conflicts.'
+                    });
+                    setGenerating(false);
+                    return true; // Stop polling
+                }
+                return false; // Continue polling
+            } catch (err) {
+                setError('Error checking status');
+                setGenerating(false);
+                return true; // Stop polling on error
+            }
+        };
+
+        // Initial check immediately
+        const finished = await check();
+        if (finished) return;
+
+        // Start polling every 2 seconds
+        const intervalId = setInterval(async () => {
+            const isDone = await check();
+            if (isDone) clearInterval(intervalId);
+        }, 2000);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setGenerating(true);
@@ -23,12 +58,14 @@ function GenerateSchedule() {
         setResult(null);
 
         try {
-            // Note: year is set to 1 for API compatibility, but backend generates for all years
-            const response = await schedulerAPI.generate({ ...formData, year: 1 });
-            setResult(response.data);
+            const response = await schedulerAPI.generate(formData);
+            const scheduleId = response.data.schedule_id;
+
+            // Start polling for completion instead of showing immediate success
+            await pollStatus(scheduleId);
+
         } catch (err) {
-            setError(err.response?.data?.error || 'Failed to generate schedule');
-        } finally {
+            setError(err.response?.data?.error || 'Failed to trigger schedule generation');
             setGenerating(false);
         }
     };

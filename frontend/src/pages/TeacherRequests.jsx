@@ -6,11 +6,15 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { teacherAPI, changeRequestAPI } from '../services/api';
+import { teacherAPI, changeRequestAPI, courseAPI, sectionAPI, teacherCourseMappingAPI } from '../services/api';
 
 function TeacherRequests() {
     const { user } = useAuth();
     const [teachers, setTeachers] = useState([]);
+    const [courses, setCourses] = useState([]);
+    const [sections, setSections] = useState([]);
+    const [mappings, setMappings] = useState([]);
+    const [newMapping, setNewMapping] = useState({ course_id: '', section_id: '' });
     const [myRequests, setMyRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
@@ -30,13 +34,18 @@ function TeacherRequests() {
     }, [user]);
 
     const loadData = async () => {
+        if (!user || !user.department) return;
         try {
-            const [teachersRes, requestsRes] = await Promise.all([
+            const [teachersRes, requestsRes, coursesRes, sectionsRes] = await Promise.all([
                 teacherAPI.byDepartment(user.department),
                 changeRequestAPI.getAll(),
+                courseAPI.byDepartment(user.department),
+                sectionAPI.byDepartment(user.department),
             ]);
             setTeachers(teachersRes.data.results || teachersRes.data);
             setMyRequests(requestsRes.data.results || requestsRes.data);
+            setCourses(coursesRes.data.results || coursesRes.data);
+            setSections(sectionsRes.data.results || sectionsRes.data);
         } catch (error) {
             console.error('Error loading data:', error);
         } finally {
@@ -53,11 +62,13 @@ function TeacherRequests() {
             department: user.department,
             max_hours_per_week: 20,
         });
+        setMappings([]);
+        setNewMapping({ course_id: '', section_id: '' });
         setRequestNotes('');
         setShowForm(true);
     };
 
-    const handleEditRequest = (teacher) => {
+    const handleEditRequest = async (teacher) => {
         setFormMode('UPDATE');
         setSelectedTeacher(teacher);
         setFormData({
@@ -67,15 +78,57 @@ function TeacherRequests() {
             department: teacher.department,
             max_hours_per_week: teacher.max_hours_per_week,
         });
+        setMappings([]);
+        setNewMapping({ course_id: '', section_id: '' });
         setRequestNotes('');
         setShowForm(true);
+
+        // Fetch current mappings
+        try {
+            const res = await teacherCourseMappingAPI.byTeacher(teacher.teacher_id);
+            setMappings(res.data.results || res.data);
+        } catch (error) {
+            console.error('Error fetching mappings:', error);
+        }
     };
 
     const handleDeleteRequest = (teacher) => {
         setFormMode('DELETE');
         setSelectedTeacher(teacher);
+        setMappings([]);
         setRequestNotes('');
         setShowForm(true);
+    };
+
+    const addMapping = () => {
+        if (!newMapping.course_id || !newMapping.section_id) return;
+
+        // Prevent duplicates in local state
+        const exists = mappings.find(m => m.course_id === newMapping.course_id && m.section_id === newMapping.section_id);
+        if (exists) {
+            alert('This course-section assignment already exists.');
+            return;
+        }
+
+        const course = courses.find(c => c.course_id === newMapping.course_id);
+        const section = sections.find(s => s.class_id === newMapping.section_id);
+
+        if (!course || !section) return;
+
+        setMappings([...mappings, {
+            course: course.course_id,
+            course_name: course.course_name,
+            section: section.class_id,
+            section_name: section.class_id,
+            preference_level: 3
+        }]);
+        setNewMapping({ course_id: '', section_id: '' });
+    };
+
+    const removeMapping = (index) => {
+        const newMappings = [...mappings];
+        newMappings.splice(index, 1);
+        setMappings(newMappings);
     };
 
     const submitRequest = async () => {
@@ -84,7 +137,14 @@ function TeacherRequests() {
                 target_model: 'Teacher',
                 target_id: formMode === 'CREATE' ? null : selectedTeacher.teacher_id,
                 change_type: formMode,
-                proposed_data: formData,
+                proposed_data: {
+                    ...formData,
+                    mappings: mappings.map(m => ({
+                        course_id: m.course || m.course_id,
+                        section_id: m.section || m.section_id || m.class_id,
+                        preference_level: m.preference_level || 3
+                    }))
+                },
                 current_data: formMode === 'CREATE' ? null : selectedTeacher,
                 request_notes: requestNotes,
             };
@@ -104,8 +164,8 @@ function TeacherRequests() {
     return (
         <div className="teacher-requests-page">
             <div className="page-header">
-                <h1 className="page-title">Teacher Management ({user.department})</h1>
-                <p className="page-description">Submit teacher modification requests for Admin approval.</p>
+                <h1 className="page-title">Faculty Management ({user.department})</h1>
+                <p className="page-description">Submit faculty modification requests for Admin approval.</p>
             </div>
 
             <div style={{ marginBottom: '2rem' }}>
@@ -245,6 +305,81 @@ function TeacherRequests() {
                                         max="40"
                                         style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
                                     />
+                                </div>
+
+                                <div style={{ borderTop: '1px solid #eee', marginTop: '1.5rem', paddingTop: '1.5rem' }}>
+                                    <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Course Assignments</h3>
+
+                                    <div style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '4px', marginBottom: '1rem' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '0.5rem', alignItems: 'end' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '0.25rem' }}>Course</label>
+                                                <select
+                                                    value={newMapping.course_id}
+                                                    onChange={(e) => setNewMapping({ ...newMapping, course_id: e.target.value })}
+                                                    style={{ width: '100%', padding: '0.4rem', border: '1px solid #ddd', borderRadius: '4px' }}
+                                                >
+                                                    <option value="">Select Course</option>
+                                                    {courses.map(c => (
+                                                        <option key={c.course_id} value={c.course_id}>{c.course_id} - {c.course_name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '0.25rem' }}>Section</label>
+                                                <select
+                                                    value={newMapping.section_id}
+                                                    onChange={(e) => setNewMapping({ ...newMapping, section_id: e.target.value })}
+                                                    style={{ width: '100%', padding: '0.4rem', border: '1px solid #ddd', borderRadius: '4px' }}
+                                                >
+                                                    <option value="">Select Section</option>
+                                                    {sections.map(s => (
+                                                        <option key={s.class_id} value={s.class_id}>{s.class_id} (Yr {s.year})</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={addMapping}
+                                                className="btn btn-sm btn-primary"
+                                                style={{ height: '36px' }}
+                                            >
+                                                Add
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="mapping-list">
+                                        {mappings.length === 0 ? (
+                                            <p style={{ color: '#666', fontStyle: 'italic', fontSize: '0.9rem' }}>No courses assigned yet.</p>
+                                        ) : (
+                                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                                                <thead>
+                                                    <tr style={{ textAlign: 'left', borderBottom: '1px solid #ddd' }}>
+                                                        <th style={{ padding: '0.5rem' }}>Course</th>
+                                                        <th style={{ padding: '0.5rem' }}>Section</th>
+                                                        <th style={{ padding: '0.5rem' }}>Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {mappings.map((m, idx) => (
+                                                        <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
+                                                            <td style={{ padding: '0.5rem' }}>{m.course}</td>
+                                                            <td style={{ padding: '0.5rem' }}>{m.section_name || m.section}</td>
+                                                            <td style={{ padding: '0.5rem' }}>
+                                                                <button
+                                                                    onClick={() => removeMapping(idx)}
+                                                                    style={{ background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer', padding: 0 }}
+                                                                >
+                                                                    Remove
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         ) : (

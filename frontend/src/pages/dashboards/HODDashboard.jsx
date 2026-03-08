@@ -17,7 +17,7 @@ import { Link } from 'react-router-dom';
 // Import global Auth Context to identify which department this user belongs to
 import { useAuth } from '../../context/AuthContext';
 // Import specific API endpoints allowed for HODs, plus change requests for dynamic pending stats
-import { teacherAPI, sectionAPI, changeRequestAPI } from '../../services/api';
+import { teacherAPI, sectionAPI, courseAPI, changeRequestAPI } from '../../services/api';
 
 function HODDashboard() {
     // ---------------------------------------------------------
@@ -41,35 +41,29 @@ function HODDashboard() {
     // ---------------------------------------------------------
     // The dependency array includes `user`, so this effect reruns if the user changes.
     useEffect(() => {
-        loadDeptStats();
+        if (user?.department) {
+            loadDeptStats();
+        }
     }, [user]);
 
     /**
      * Loads aggregated counts specifically filtered by the HOD's department.
      */
     const loadDeptStats = async () => {
-        // Yield early if the user object hasn't loaded a department yet
-        if (!user?.department) return;
-
         try {
             // Fetch teachers, sections, and dynamic pending request counts concurrently
-            const [teachers, sections, pendingRes] = await Promise.all([
-                teacherAPI.byDepartment(user.department), // Requires specialized backend endpoint
-                sectionAPI.getAll(),                      // Fetches all, filters locally
+            const [teachersRes, sectionsRes, coursesRes, pendingRes] = await Promise.all([
+                teacherAPI.byDepartment(user.department),
+                sectionAPI.byDepartment(user.department),
+                courseAPI.byDepartment(user.department),
                 changeRequestAPI.getPendingCount().catch(() => ({ data: { count: 0 } }))
             ]);
 
-            // Safely extract the data arrays regardless of pagination settings
-            const sectionData = sections.data.results || sections.data || [];
-
-            // Client-side filtering: Only keep sections matching this HOD's department
-            const deptSections = sectionData.filter(s => s.department === user.department);
-
             // Update the state with the calculated lengths
             setStats({
-                deptTeachers: teachers.data.results?.length || teachers.data.length || 0,
-                deptCourses: 0, // Placeholder, would need a specialized department-course endpoint
-                deptSections: deptSections.length,
+                deptTeachers: teachersRes.data.length || 0,
+                deptCourses: coursesRes.data.length || 0,
+                deptSections: sectionsRes.data.length || 0,
                 pendingApprovals: pendingRes.data.count || 0,
             });
         } catch (error) {
@@ -100,6 +94,10 @@ function HODDashboard() {
                     <div className="stat-value">{stats.deptTeachers}</div>
                 </div>
                 <div className="stat-card">
+                    <div className="stat-label">Courses</div>
+                    <div className="stat-value">{stats.deptCourses}</div>
+                </div>
+                <div className="stat-card">
                     <div className="stat-label">Active Sections</div>
                     <div className="stat-value">{stats.deptSections}</div>
                 </div>
@@ -113,7 +111,7 @@ function HODDashboard() {
             <div className="actions-section">
                 <h2 className="actions-header">Department Actions</h2>
                 <div className="actions-grid">
-                    <Link to="/data" className="action-card">
+                    <Link to="/teacher-requests" className="action-card">
                         <h3>Manage Faculty</h3>
                         <p>View and edit faculty details.</p>
                     </Link>

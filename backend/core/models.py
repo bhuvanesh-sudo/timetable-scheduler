@@ -395,11 +395,11 @@ class TeacherCourseMapping(models.Model):
     )
     # The academic year context
     year = models.IntegerField(null=True, blank=True)
-    # Preference level for scheduling constraints (1=Low preference, 5=High preference)
+    # Preference level for scheduling constraints (1=Highest priority, 5=Lowest priority)
     preference_level = models.IntegerField(
         default=3,
         validators=[MinValueValidator(1), MaxValueValidator(5)],
-        help_text="1=Low, 5=High preference",
+        help_text="1=Highest Priority, 5=Lowest Priority (Default=3)",
     )
     # Domain identifier for specialized subject grouping
     domain_id = models.IntegerField(
@@ -447,8 +447,8 @@ class Schedule(models.Model):
     semester = models.CharField(
         max_length=10, choices=[("odd", "Odd"), ("even", "Even")]
     )
-    # Year context
-    year = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(4)])
+    # Year context (null for institutional-wide schedules)
+    year = models.IntegerField(null=True, blank=True)
     # Current lifecycle state
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING")
     # Creation timestamp

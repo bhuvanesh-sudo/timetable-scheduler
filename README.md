@@ -18,68 +18,50 @@ The project follows a modern decoupled architecture:
 
 ---
 
-## 📁 Project Structure
+## 🚀 Getting Started (Terminal Setup)
 
+Follow these steps to get the system running in your local environment.
+
+### 1. Terminal 1: Backend & Worker
 ```bash
-timetable-scheduler/
-├── backend/                    # Django Backend
-│   ├── core/                  # Core Models & API
-│   ├── scheduler/             # Scheduling Algorithm Logic
-│   ├── tests/                 # Consolidated Testing Suite
-│   ├── db.sqlite3             # Main Database
-│   └── audit_db.sqlite3       # Persistent Audit Trail
-├── frontend/                   # React Frontend
-│   ├── src/
-│   │   ├── dashboards/        # Role-specific Dashboards (Admin, HOD, Faculty)
-│   │   ├── pages/             # Application Pages
-│   │   ├── services/          # API Integration Layer
-│   │   └── __tests__/         # Frontend Component Tests
-│   └── package.json
-├── Datasets/                   # Core CSV Datasets for Institutional Data
-├── docs/                       # Project Documentation & UML Diagrams
-│   ├── API_DOCUMENTATION.md   # Complete REST API reference
-│   ├── DEV_DOCUMENTATION.md   # Developer setup & architecture guide
-│   ├── USER_DOCUMENTATION.md  # Guide for Admins, HODs, and Faculty
-│   └── setup_guide.md         # Initial environment setup instructions
-└── README.md                   # This file
+cd backend
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Sync Environment
+cp .env.example .env
+
+# Database & Data Setup
+python manage.py migrate
+python manage.py migrate --database=audit_db
+python manage.py import_data --clear
+python manage.py setup_standard_users
+
+# Run Background Worker (Ensure Redis is running)
+celery -A timetable_project worker --loglevel=ERROR
+
+# Run Backend Server
+python manage.py runserver
+```
+
+### 2. Terminal 2: Frontend
+```bash
+cd frontend
+npm install
+npm run dev
 ```
 
 ---
 
-## 🚀 Setup & Execution
+## 🔐 Credentials Quick Reference
 
-### Backend Setup
-1. `cd backend`
-2. `python3 -m venv venv`
-3. `source venv/bin/activate`
-4. `pip install -r requirements.txt`
-5. `python manage.py migrate`
-6. `python manage.py migrate --database=audit_db`
-7. `python manage.py import_data --clear`
-8. `python manage.py runserver`
+| Role | Username | Password |
+| :--- | :--- | :--- |
+| **Admin** | `admin` | `admin123` |
+| **HOD** | `hod` | `hod123` |
+| **Faculty** | `T001` to `T086` | `faculty123` |
 
-### Background Worker Setup (Required for Generation)
-1. `cd backend`
-2. `source venv/bin/activate`
-3. `celery -A timetable_project worker -l info`
-
-### Frontend Setup
-1. `cd frontend`
-2. `npm install`
-3. `npm run dev`
-
----
-
-## 🧪 Testing
-
-The project includes a comprehensive consolidated testing suite:
-
-**Backend**:
-- Run all tests: `cd backend && pytest tests/ -v`
-- Available modules: `rbac/`, `data_ingestion/`, `algorithm/`, `core/`
-
-**Frontend**:
-- Run tests: `cd frontend && npm test`
+**Central Institution Email**: `m3amrita@gmail.com`
 
 ---
 
@@ -91,4 +73,4 @@ The project includes a comprehensive consolidated testing suite:
 - **Karthikeyan (539)** - DevOps & Structure
 
 ---
-**Status**: CLEANED & ORGANIZED (Ready for further development)
+**Status**: 100% Ready for Distribution
