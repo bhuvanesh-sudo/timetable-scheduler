@@ -38,7 +38,7 @@ function DataManagement() {
 
     // CSV Import state
     const [showImportModal, setShowImportModal] = useState(false);
-    const [csvFile, setCsvFile] = useState(null);
+    const [, setCsvFile] = useState(null);
     const [csvData, setCsvData] = useState([]);
     const [importErrors, setImportErrors] = useState([]);
 
@@ -459,7 +459,7 @@ function DataManagement() {
         );
     }
 
-    const currentData = getCurrentData();
+    const _currentData = getCurrentData();
 
     return (
         <div>

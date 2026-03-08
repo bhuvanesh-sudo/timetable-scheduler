@@ -63,6 +63,7 @@ jobs:
       AUDIT_DATABASE_URL: sqlite:///audit_db.sqlite3
       SECRET_KEY: ci-test-secret-key
       DEBUG: 'True'
+      PYTHONUNBUFFERED: '1'
 
     steps:
       - uses: actions/checkout@v4
@@ -83,12 +84,12 @@ jobs:
       - name: Run Migrations
         working-directory: ./backend
         run: |
-          python manage.py migrate
-          python manage.py migrate --database=audit_db
+          python manage.py migrate --noinput
+          python manage.py migrate --database=audit_db --noinput
 
       - name: Run Backend Tests
         working-directory: ./backend
-        run: pytest -v
+        run: pytest -v --tb=short
 
   # ─────────────────────────────────────────────
   # Deploy Frontend to Vercel (only on main push)

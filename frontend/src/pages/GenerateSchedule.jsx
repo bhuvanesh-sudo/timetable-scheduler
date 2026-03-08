@@ -20,7 +20,7 @@ function GenerateSchedule() {
         const check = async () => {
             try {
                 const response = await schedulerAPI.getStatus(scheduleId);
-                const { status, quality_score } = response.data;
+                const { status, quality_score: _quality_score } = response.data;
 
                 if (status === 'COMPLETED' || status === 'FAILED') {
                     setResult({
@@ -33,7 +33,7 @@ function GenerateSchedule() {
                     return true; // Stop polling
                 }
                 return false; // Continue polling
-            } catch (err) {
+            } catch (_err) {
                 setError('Error checking status');
                 setGenerating(false);
                 return true; // Stop polling on error

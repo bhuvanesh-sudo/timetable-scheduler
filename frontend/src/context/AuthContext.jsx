@@ -1,5 +1,4 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import axios from 'axios';
 import schedulerAPI from '../services/api';
 
 /**
@@ -16,7 +15,7 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [accessToken, setAccessToken] = useState(localStorage.getItem('access_token'));
-    const [refreshToken, setRefreshToken] = useState(localStorage.getItem('refresh_token'));
+    const [, setRefreshToken] = useState(localStorage.getItem('refresh_token'));
 
     useEffect(() => {
         // Initialize from local storage or verify existing token
