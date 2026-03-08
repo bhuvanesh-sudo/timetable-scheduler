@@ -39,7 +39,8 @@ timetable-scheduler/
 ├── docs/                       # Project Documentation & UML Diagrams
 │   ├── API_DOCUMENTATION.md   # Complete REST API reference
 │   ├── DEV_DOCUMENTATION.md   # Developer setup & architecture guide
-│   └── USER_DOCUMENTATION.md  # Guide for Admins, HODs, and Faculty
+│   ├── USER_DOCUMENTATION.md  # Guide for Admins, HODs, and Faculty
+│   └── setup_guide.md         # Initial environment setup instructions
 └── README.md                   # This file
 ```
 
@@ -56,6 +57,11 @@ timetable-scheduler/
 6. `python manage.py migrate --database=audit_db`
 7. `python manage.py import_data --clear`
 8. `python manage.py runserver`
+
+### Background Worker Setup (Required for Generation)
+1. `cd backend`
+2. `source venv/bin/activate`
+3. `celery -A timetable_project worker -l info`
 
 ### Frontend Setup
 1. `cd frontend`
