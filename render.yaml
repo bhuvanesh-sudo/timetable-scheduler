@@ -27,7 +27,7 @@ services:
       - key: ALLOWED_HOSTS
         value: ".onrender.com"
       - key: PYTHON_VERSION
-        value: "3.13.0"
+        value: "3.12.3"
 
 databases:
   - name: timetable-db
