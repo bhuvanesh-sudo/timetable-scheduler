@@ -372,7 +372,10 @@ function ViewTimetable() {
                     const isProject = c.course_name?.toLowerCase().includes('project phase');
                     const label = (c.is_elective && c.elective_group) ? `[${c.elective_group}]` : c.course_code;
 
-                    let text = `${label}\n${c.course_name}`;
+                    const displayName = (c.year === 4 && c.is_elective && c.constraint_reason)
+                        ? c.constraint_reason
+                        : c.course_name;
+                    let text = `${label}\n${displayName}`;
 
                     // Only add Room/Section for non-electives/non-projects
                     if (!c.is_elective && !isProject) {
@@ -382,7 +385,7 @@ function ViewTimetable() {
                         text += `\n(${c.section})`;
                     }
 
-                    if (c.is_lab_session && !isProject) text += ' [LAB]';
+                    if (c.is_lab_session && !isProject && c.year !== 4) text += ' [LAB]';
                     if (isProject) text += ' [PROJECT]';
                     return text;
                 }).join('\n\n');
@@ -972,19 +975,29 @@ function ViewTimetable() {
                                                 // Grouping Logic for UI Display
                                                 const groupedItems = [];
 
-                                                // If we are filtering by a specific teacher, we should merge identical courses
-                                                // (e.g., Project Phase III spanning multiple sections) into a single card
+                                                // If we are filtering by a specific teacher OR course, we should merge identical courses
+                                                // into a single card showing all sections (and all teachers/rooms if they differ)
+                                                // We DO NOT merge the Universal View (no filters) per user request, we want a scrollable list.
                                                 const isTeacherView = Boolean(selectedTeacher || user?.role === 'FACULTY');
+                                                const isCourseView = Boolean(selectedCourse);
 
-                                                if (isTeacherView) {
+                                                if (isTeacherView || isCourseView) {
                                                     const courseMap = new Map();
                                                     items.forEach(item => {
                                                         const key = `${item.course_id}-${item.session_type}`;
                                                         if (courseMap.has(key)) {
                                                             const existing = courseMap.get(key);
                                                             // merge sections
-                                                            if (!existing.section.includes(item.section)) {
+                                                            if (!existing.section.split(', ').includes(item.section)) {
                                                                 existing.section += `, ${item.section}`;
+                                                            }
+                                                            // merge teachers
+                                                            if (existing.teacher_name && item.teacher_name && !existing.teacher_name.split(', ').includes(item.teacher_name)) {
+                                                                existing.teacher_name += `, ${item.teacher_name}`;
+                                                            }
+                                                            // merge rooms
+                                                            if (existing.room && item.room && !existing.room.split(', ').includes(item.room)) {
+                                                                existing.room += `, ${item.room}`;
                                                             }
                                                         } else {
                                                             courseMap.set(key, { ...item });
@@ -1049,7 +1062,8 @@ function ViewTimetable() {
                                                                 transform: isDraggingThis ? 'scale(0.95)' : undefined,
                                                                 padding: '10px',
                                                                 minHeight: classItem.is_lab_session ? '100%' : 'auto',
-                                                                position: 'relative'
+                                                                position: 'relative',
+                                                                flexShrink: 0
                                                             }}
                                                             title={
                                                                 isAdminOrHOD
@@ -1069,8 +1083,8 @@ function ViewTimetable() {
                                                                     ⠿
                                                                 </div>
                                                             )}
-                                                            {/* LAB Badge */}
-                                                            {classItem.is_lab_session && !isProject && (
+                                                            {/* LAB Badge - Hide for Projects and Year 4 Electives */}
+                                                            {classItem.is_lab_session && !isProject && classItem.year !== 4 && (
                                                                 <div style={{
                                                                     position: 'absolute',
                                                                     top: '8px',
@@ -1096,24 +1110,27 @@ function ViewTimetable() {
                                                                         : classItem.course_code}
                                                                 </div>
                                                                 <div className="class-name" style={{ fontSize: '0.7rem', fontWeight: 600, opacity: 0.9, lineHeight: '1.2' }}>
-                                                                    {classItem.course_name}
+                                                                    {classItem.year === 4 && classItem.is_elective && classItem.constraint_reason
+                                                                        ? classItem.constraint_reason
+                                                                        : classItem.course_name}
                                                                 </div>
 
-                                                                {/* Only hide for Projects, but show aggregated Teacher/Room for Electives now */}
-                                                                {!isProject && (
+                                                                {/* Hide Faculty and Room for Electives and Projects entirely, as requested by upstream */}
+                                                                {!classItem.is_elective && !isProject && (
                                                                     <>
-                                                                        <div className="class-teacher" style={{ fontSize: '0.65rem', marginTop: '2px', fontStyle: classItem.is_elective ? 'italic' : 'normal' }}>
+                                                                        <div className="class-teacher" style={{ fontSize: '0.65rem', marginTop: '2px', wordBreak: 'break-word', lineHeight: '1.2' }}>
                                                                             {classItem.teacher_name}
                                                                         </div>
-                                                                        <div className="class-room-sec" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem', fontWeight: 700, marginTop: '4px' }}>
+                                                                        <div className="class-room-sec" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '2px', fontSize: '0.6rem', fontWeight: 700, marginTop: '4px' }}>
                                                                             <span>Room: {classItem.room}</span>
                                                                             <span>Sec: {classItem.section}</span>
                                                                         </div>
                                                                     </>
                                                                 )}
 
-                                                                {isProject && (
-                                                                    <div className="class-room-sec" style={{ display: 'flex', justifyContent: 'flex-end', fontSize: '0.6rem', fontWeight: 700, marginTop: '4px' }}>
+                                                                {/* If it IS an elective/project, just show a minimal Section indicator if needed */}
+                                                                {(classItem.is_elective || isProject) && (
+                                                                    <div className="class-room-sec" style={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap', fontSize: '0.6rem', fontWeight: 700, marginTop: '4px' }}>
                                                                         <span>{classItem.section}</span>
                                                                     </div>
                                                                 )}
