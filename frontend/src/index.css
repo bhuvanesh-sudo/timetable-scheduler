@@ -16,9 +16,9 @@
   --secondary: #64748b;
   --success: #10b981;
   --warning: #f59e0b;
-  --danger: #ef4444;
-  --lab-color: #0ea5e9;
-  /* Sky 500 - Distinct from Violet */
+  --color-project: #f3e8ff;
+  --border-project: #c084fc;
+  --text-project: #7e22ce;
 
   /* Surfaces & Glassmorphism (Light) */
   --bg-primary: #ffffff;
@@ -628,6 +628,12 @@ input:checked+.slider:before {
   background: var(--color-fe);
   border-color: var(--border-fe);
   color: var(--text-fe);
+}
+
+.class-block.project {
+  background: var(--color-project);
+  border-color: var(--border-project);
+  color: var(--text-project);
 }
 
 /* Badge for elective type */

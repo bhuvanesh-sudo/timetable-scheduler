@@ -26,21 +26,23 @@ export default function ElectiveMappingModal({ isOpen, onClose, scheduleId }) {
                 Object.keys(slotsForDay).forEach(slotNum => {
                     const entries = slotsForDay[slotNum];
                     entries.forEach(entry => {
-                        if (entry.is_elective) {
+                        const isProject = entry.course_name?.includes('Project Phase');
+                        if (entry.is_elective || isProject) {
                             electives.push({
                                 ...entry,
                                 day,
-                                slotNum
+                                slotNum,
+                                display_group: entry.elective_group || (isProject ? 'Project Phases' : 'Other Electives')
                             });
                         }
                     });
                 });
             });
 
-            // Group by Elective Type / Group for easier reading
+            // Group by display_group for easier reading
             const grouped = {};
             electives.forEach(e => {
-                const groupName = e.elective_type || e.elective_group || 'Other Elective';
+                const groupName = e.display_group;
                 if (!grouped[groupName]) {
                     grouped[groupName] = [];
                 }

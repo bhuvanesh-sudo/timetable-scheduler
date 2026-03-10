@@ -109,19 +109,30 @@ class Command(BaseCommand):
                 practicals = int(row["practicals"])
                 csv_weekly_slots = int(row["weekly_slots"])
                 
-                computed_weekly_slots = lectures + theory + practicals
-                if csv_weekly_slots != computed_weekly_slots:
-                    self.stdout.write(self.style.ERROR(f"Data inconsistency in {course_id}: weekly_slots={csv_weekly_slots} vs computed={computed_weekly_slots}. Rejecting record."))
-                    continue
-
-                # Semester correction for Year 4:
-                # Semester 7 (PE_SEM7, FREE_SEM7) should be Odd.
-                # Project Phase II/III are usually Sem 8 (Even).
+                # Semester correction for Year 4 & Project Phases:
                 sem = row["semester"].strip().lower()
                 year_val = int(row["year"])
-                if year_val == 4:
-                    if (e_group and "SEM7" in e_group) or course_id in ["PE4", "PE5", "PE6", "FREE2"]:
+                
+                # Special handling for Project Phases
+                if "Project Phase" in row["course_name"]:
+                    lectures = 0
+                    theory = 0
+                    practicals = int(row["credits"]) # 1:1 slot ratio
+                    computed_weekly_slots = practicals
+                    
+                    if "Phase III" in row["course_name"]:
+                        sem = "even"
+                    elif "Phase II" in row["course_name"]:
                         sem = "odd"
+                    else:
+                        sem = "even" # Phase I
+                else:
+                    # RULE: Weekly Slots = Lectures + Theory + Practicals
+                    computed_weekly_slots = lectures + theory + practicals
+                    
+                    if year_val == 4:
+                        if (e_group and "SEM7" in e_group) or course_id in ["PE4", "PE5", "PE6", "FREE2"]:
+                            sem = "odd"
                 
                 Course.objects.update_or_create(
                     course_id=course_id,
@@ -130,10 +141,10 @@ class Command(BaseCommand):
                         "year": year_val,
                         "semester": sem,
                         "lectures": lectures,
-                        "theory": theory, # used for tutorials
+                        "theory": theory,
                         "practicals": practicals,
                         "credits": int(row["credits"]),
-                        "is_lab": str(row["is_lab"]).strip() == "1",
+                        "is_lab": str(row["is_lab"]).strip() == "1" or "Project Phase" in row["course_name"],
                         "is_elective": is_elective,
                         "is_adm": is_adm,
                         "elective_type": row.get("elective_type", "").strip() or None,

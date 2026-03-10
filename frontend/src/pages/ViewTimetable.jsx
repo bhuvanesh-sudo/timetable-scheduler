@@ -368,9 +368,24 @@ function ViewTimetable() {
             const rowData = [`Slot ${slot}`];
             DAYS.forEach(day => {
                 const classes = timetable[day]?.[slot] || [];
-                const cellContent = classes.map(c =>
-                    `${c.course_code}\n${c.room} (${c.section})` + (c.is_lab_session ? ' [LAB]' : '')
-                ).join('\n\n');
+                const cellContent = classes.map(c => {
+                    const isProject = c.course_name?.toLowerCase().includes('project phase');
+                    const label = (c.is_elective && c.elective_group) ? `[${c.elective_group}]` : c.course_code;
+
+                    let text = `${label}\n${c.course_name}`;
+
+                    // Only add Room/Section for non-electives/non-projects
+                    if (!c.is_elective && !isProject) {
+                        text += `\n${c.room} (${c.section})`;
+                    } else if (c.section) {
+                        // Keep section for electives/projects if specified
+                        text += `\n(${c.section})`;
+                    }
+
+                    if (c.is_lab_session) text += ' [LAB]';
+                    if (isProject) text += ' [PROJECT]';
+                    return text;
+                }).join('\n\n');
                 rowData.push(cellContent);
             });
             tableRows.push(rowData);
@@ -394,9 +409,15 @@ function ViewTimetable() {
             columnStyles: { 0: { cellWidth: 20, fontStyle: 'bold' } },
             didParseCell: (data) => {
                 if (data.section === 'body' && data.column.index > 0 && data.cell.raw) {
-                    if (data.cell.raw.toString().includes('[LAB]')) {
-                        data.cell.styles.fillColor = [240, 248, 255];
+                    const cellStr = data.cell.raw.toString();
+                    if (cellStr.includes('[LAB]')) {
+                        data.cell.styles.fillColor = [240, 248, 255]; // Light Blue
                     }
+                    if (cellStr.includes('[PROJECT]')) {
+                        data.cell.styles.fillColor = [243, 232, 255]; // Light Purple
+                    }
+                    // Clean up markers from display
+                    data.cell.text = data.cell.text.map(t => t.replace(' [LAB]', '').replace(' [PROJECT]', ''));
                 }
             }
         });
@@ -953,7 +974,8 @@ function ViewTimetable() {
                                                     const isDraggingThis = dragging?.entryId === classItem.entry_id;
 
                                                     // VC-1 Mapping
-                                                    const sessionTypeClass = classItem.session_type?.toLowerCase() || 'theory';
+                                                    const isProject = classItem.course_name?.toLowerCase().includes('project phase');
+                                                    const sessionTypeClass = isProject ? 'project' : (classItem.session_type?.toLowerCase() || 'theory');
                                                     const isTeacherHighlight = classItem.teacher_id === (user?.teacher_id || selectedTeacher);
 
                                                     return (
@@ -992,20 +1014,34 @@ function ViewTimetable() {
                                                             <div className="class-content" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                                                 {/* VC-3 Display Format */}
                                                                 <div className="class-code" style={{ fontWeight: 800, fontSize: '0.85rem' }}>
-                                                                    {classItem.is_elective && classItem.elective_type
-                                                                        ? classItem.elective_type
+                                                                    {classItem.is_elective && classItem.elective_group
+                                                                        ? `[${classItem.elective_group}]`
                                                                         : classItem.course_code}
                                                                 </div>
                                                                 <div className="class-name" style={{ fontSize: '0.7rem', fontWeight: 600, opacity: 0.9, lineHeight: '1.2' }}>
                                                                     {classItem.course_name}
                                                                 </div>
-                                                                <div className="class-teacher" style={{ fontSize: '0.65rem', marginTop: '2px' }}>
-                                                                    {classItem.teacher_name}
-                                                                </div>
-                                                                <div className="class-room-sec" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem', fontWeight: 700, marginTop: '4px' }}>
-                                                                    <span>Room: {classItem.room}</span>
-                                                                    {!classItem.is_elective && <span>Sec: {classItem.section}</span>}
-                                                                </div>
+
+                                                                {/* Hide Faculty and Room for Electives and Projects */}
+                                                                {!classItem.is_elective && !isProject && (
+                                                                    <>
+                                                                        <div className="class-teacher" style={{ fontSize: '0.65rem', marginTop: '2px' }}>
+                                                                            {classItem.teacher_name}
+                                                                        </div>
+                                                                        <div className="class-room-sec" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem', fontWeight: 700, marginTop: '4px' }}>
+                                                                            <span>Room: {classItem.room}</span>
+                                                                            <span>Sec: {classItem.section}</span>
+                                                                        </div>
+                                                                    </>
+                                                                )}
+
+                                                                {/* If it IS an elective/project, just show a minimal indicator if needed, but per-request: remove faculty/room alone */}
+                                                                {/* (Section is usually implicit in the group for electives, but for Projects we hide it too per request 'rest all mention same for free elective anf project phase' - wait, user said "just remove that faculty name, room name alone, rest all mention same for free elective and project phase".) */}
+                                                                {(classItem.is_elective || isProject) && (
+                                                                    <div className="class-room-sec" style={{ display: 'flex', justifyContent: 'flex-end', fontSize: '0.6rem', fontWeight: 700, marginTop: '4px' }}>
+                                                                        <span>{classItem.section}</span>
+                                                                    </div>
+                                                                )}
                                                             </div>
 
                                                             {isAdminOrHOD && (

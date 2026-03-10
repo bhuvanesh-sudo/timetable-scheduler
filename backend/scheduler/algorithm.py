@@ -79,8 +79,9 @@ class TimetableScheduler:
         self.room_busy = {}      
         self.section_busy = {}   
         self.rooms_by_type = {'CLASSROOM': [], 'LAB': []}
+        self.section_day_counts = {} # (section_id, day) -> count
         self.iterations = 0
-        self.MAX_ITERATIONS = 500000
+        self.MAX_ITERATIONS = 1000000
 
     def generate(self):
         try:
@@ -189,11 +190,19 @@ class TimetableScheduler:
             section = Section.objects.get(class_id=section_id)
             
             if course.practicals > 0:
-                tasks.append({
-                    'type': TYPE_PRACTICAL, 'course': course, 'sections': [section],
-                    'teacher': teacher, 'block_size': course.practicals,
-                    'priority': PRIORITY[TYPE_PRACTICAL], 'session_type': 'PRACTICAL'
-                })
+                if "Project Phase" in course.course_name:
+                    for _ in range(course.practicals):
+                        tasks.append({
+                            'type': TYPE_PRACTICAL, 'course': course, 'sections': [section],
+                            'teacher': teacher, 'block_size': 1,
+                            'priority': PRIORITY[TYPE_PRACTICAL], 'session_type': 'PRACTICAL'
+                        })
+                else:
+                    tasks.append({
+                        'type': TYPE_PRACTICAL, 'course': course, 'sections': [section],
+                        'teacher': teacher, 'block_size': course.practicals,
+                        'priority': PRIORITY[TYPE_PRACTICAL], 'session_type': 'PRACTICAL'
+                    })
 
             for i in range(course.lectures):
                 tasks.append({
@@ -217,63 +226,72 @@ class TimetableScheduler:
 
         for g_name, courses in groups.items():
             year = courses[0].year
-            
             t_type = TYPE_FE if "FREE" in g_name.upper() else TYPE_PE
             s_type = 'FE' if t_type == TYPE_FE else 'PE'
             
-            placeholder = next((c for c in courses if c.course_id == c.elective_type or len(c.course_id) <= 5), courses[0])
-            weekly_slots = max(c.weekly_slots for c in courses)
-            if t_type == TYPE_PE:
-                weekly_slots = 3
-            elif t_type == TYPE_FE:
-                weekly_slots = 2
+            # Identify distinct requirements in this group (placeholders like PE1, PE2, PE4, PE5, PE6, FREE1, FREE2)
+            # These are identified by having short course IDs (e.g., 2-5 chars)
+            placeholders = sorted([c for c in courses if len(c.course_id) <= 5], key=lambda x: x.course_id)
+            if not placeholders: placeholders = [courses[0]]
             
             # Master map for this group
             group_mappings = TeacherCourseMapping.objects.filter(course__in=courses).select_related('teacher', 'course', 'section')
-            
             busy_teachers = set(m.teacher for m in group_mappings)
-            
-            target_sections = [s for s in sections if s.year == year]
+            available_teachers = sorted(list(busy_teachers), key=lambda x: x.teacher_id)
+            target_sections = sorted([s for s in sections if s.year == year], key=lambda x: x.class_id)
             if not target_sections: continue
-            
-            for _ in range(weekly_slots):
-                sub_tasks = []
-                for sec in target_sections:
-                    # 1. Look for mapping with exact section link
-                    m = next((m for m in group_mappings if m.section == sec), None)
+
+            # For EACH requirement (e.g., PE4, PE5, PE6), generate a separate parallel session plan
+            for p_idx, placeholder in enumerate(placeholders):
+                # Build session plan for this specific requirement using its L, T, P
+                session_plan = []
+                for _ in range(placeholder.lectures): session_plan.append({'type': t_type, 'block_size': 1, 'session_type': s_type})
+                for _ in range(placeholder.theory): session_plan.append({'type': TYPE_TUTORIAL, 'block_size': 1, 'session_type': 'TUTORIAL'})
+                if placeholder.practicals > 0:
+                    session_plan.append({'type': TYPE_PRACTICAL, 'block_size': placeholder.practicals, 'session_type': 'PRACTICAL'})
+
+                for session in session_plan:
+                    sub_tasks = []
+                    task_busy_teachers = set()
                     
-                    # 2. Look for mapping with section_group match (e.g. "A" in "CSE4A")
-                    if not m:
-                        m = next((m for m in group_mappings if m.section_group and m.section_group in sec.class_id.upper()), None)
+                    for idx, sec in enumerate(target_sections):
+                        # Filter mappings for this specific section or its group (A, B, C...)
+                        sec_mappings = [
+                            m for m in group_mappings 
+                            if m.section == sec or (m.section_group and m.section_group in sec.class_id.upper())
+                        ]
+                        
+                        # Distribute mappings across requirements (PE1 maps to first, PE2 to second, etc.)
+                        m = None
+                        if sec_mappings:
+                            m = sec_mappings[p_idx % len(sec_mappings)]
+                        
+                        if m:
+                            current_course = m.course if m.course.is_elective else placeholder
+                            sub_tasks.append({'course': current_course, 'teacher': m.teacher, 'sections': [sec], 'session_type': session['session_type']})
+                            task_busy_teachers.add(m.teacher)
+                        else:
+                            # Fallback: distribute available teachers across placeholders too
+                            if available_teachers:
+                                # Combine sec index and requirement index for distribution
+                                t_idx = (idx + p_idx) % len(available_teachers)
+                                t = available_teachers[t_idx]
+                                sub_tasks.append({
+                                    'course': placeholder, 'teacher': t,
+                                    'sections': [sec], 'session_type': session['session_type']
+                                })
+                                task_busy_teachers.add(t)
                     
-                    if m:
-                        sub_tasks.append({
-                            'course': m.course,
-                            'teacher': m.teacher,
-                            'sections': [sec],
-                            'session_type': s_type
+                    if sub_tasks:
+                        tasks.append({
+                            'type': session['type'], 
+                            'sub_tasks': sub_tasks, 
+                            'busy_teachers': list(task_busy_teachers),
+                            'block_size': session['block_size'],
+                            'priority': PRIORITY[session['type']], 
+                            'is_group': True,
+                            'group_name': f"{g_name}_{placeholder.course_id}"
                         })
-                    else:
-                        # Fallback to placeholder if NO mapping found for this section
-                        # (Keep one teacher from the group as fallback)
-                        fallback_teacher = list(busy_teachers)[0] if busy_teachers else None
-                        if fallback_teacher:
-                            sub_tasks.append({
-                                'course': placeholder,
-                                'teacher': fallback_teacher,
-                                'sections': [sec],
-                                'session_type': s_type
-                            })
-                
-                if sub_tasks:
-                    tasks.append({
-                        'type': t_type, 
-                        'sub_tasks': sub_tasks, 
-                        'busy_teachers': list(busy_teachers),
-                        'block_size': 1,
-                        'priority': PRIORITY[t_type], 
-                        'is_group': True
-                    })
         return tasks
 
     def _backtrack_place(self, tasks, index, ts_by_day):
@@ -285,8 +303,22 @@ class TimetableScheduler:
             
         if index >= len(tasks): return True
         task = tasks[index]
-        days = list(DAYS)
-        random.shuffle(days)
+        
+        # Heuristic: Prioritize days where the involved sections have no classes yet
+        def score_day(d):
+            score = 0
+            task_sections = task.get('sections', [])
+            if not task_sections and task.get('sub_tasks'):
+                # Extract sections from first subtask for grouping
+                task_sections = task['sub_tasks'][0].get('sections', [])
+            
+            for sec in task_sections:
+                if self.section_day_counts.get((sec.class_id, d), 0) == 0:
+                    score -= 100 # Strongly favor this day
+            return score
+            
+        days = sorted(DAYS, key=score_day)
+        
         for day in days:
             day_slots = ts_by_day.get(day, [])
             for i in range(len(day_slots) - task['block_size'] + 1):
@@ -310,7 +342,7 @@ class TimetableScheduler:
         room_type = 'LAB' if task['type'] == TYPE_PRACTICAL else 'CLASSROOM'
         
         # Fallback bypass to ensure 100% generation instead of dropping classes mathematically
-        bypass = hasattr(self, 'iterations') and self.iterations > 150000
+        bypass = hasattr(self, 'iterations') and self.iterations > 300000
 
         for ts in window:
             if not bypass and self.faculty_busy.get((teacher.teacher_id, ts.day, ts.slot_number)): return False
@@ -342,13 +374,24 @@ class TimetableScheduler:
             added.append(ent)
             self.faculty_busy[(teacher.teacher_id, ts.day, ts.slot_number)] = True
             self.room_busy[(room.room_id, ts.day, ts.slot_number)] = True
-            for sec in task['sections']: self.section_busy[(sec.class_id, ts.day, ts.slot_number)] = True
+            for sec in task['sections']: 
+                self.section_busy[(sec.class_id, ts.day, ts.slot_number)] = True
+                # Track day coverage
+                key = (sec.class_id, ts.day)
+                self.section_day_counts[key] = self.section_day_counts.get(key, 0) + 1
         return added
 
     def _remove_single(self, task, window, added):
         teacher = task['teacher']
         room = task['selected_room']
-        for ent in added: self.entries.remove(ent)
+        for ent in added: 
+            self.entries.remove(ent)
+            ts = ent['timeslot']
+            sec = ent['section']
+            # Untrack day coverage
+            key = (sec.class_id, ts.day)
+            self.section_day_counts[key] = self.section_day_counts.get(key, 0) - 1
+            
         for ts in window:
             self.faculty_busy[(teacher.teacher_id, ts.day, ts.slot_number)] = False
             self.room_busy[(room.room_id, ts.day, ts.slot_number)] = False
@@ -390,6 +433,9 @@ class TimetableScheduler:
                 self.entries.append(ent)
                 added.append(ent)
                 self.section_busy[(sec.class_id, ts.day, ts.slot_number)] = True
+                # Track day coverage
+                key = (sec.class_id, ts.day)
+                self.section_day_counts[key] = self.section_day_counts.get(key, 0) + 1
             self.room_busy[(room.room_id, ts.day, ts.slot_number)] = True
             
         for t in task.get('busy_teachers', []):
@@ -399,7 +445,12 @@ class TimetableScheduler:
 
     def _remove_group(self, task, window, added):
         ts = window[0]
-        for ent in added: self.entries.remove(ent)
+        for ent in added: 
+            self.entries.remove(ent)
+            # Untrack day coverage
+            key = (ent['section'].class_id, ent['timeslot'].day)
+            self.section_day_counts[key] = self.section_day_counts.get(key, 0) - 1
+
         for sub in task['sub_tasks']:
             self.room_busy[(sub['selected_room'].room_id, ts.day, ts.slot_number)] = False
             for sec in sub['sections']: self.section_busy[(sec.class_id, ts.day, ts.slot_number)] = False
