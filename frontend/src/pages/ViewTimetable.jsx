@@ -972,19 +972,28 @@ function ViewTimetable() {
                                                 // Grouping Logic for UI Display
                                                 const groupedItems = [];
 
-                                                // If we are filtering by a specific teacher, we should merge identical courses
-                                                // (e.g., Project Phase III spanning multiple sections) into a single card
-                                                const isTeacherView = Boolean(selectedTeacher || user?.role === 'FACULTY');
+                                                // If we are looking at the Universal View (no filters) OR filtering by Teacher/Course/Room,
+                                                // we should merge identical courses into a single card showing all sections, teachers, and rooms.
+                                                // We ONLY use the old elective-grouping logic if viewing a specific single Section.
+                                                const isEntityOrUniversalView = !selectedSection;
 
-                                                if (isTeacherView) {
+                                                if (isEntityOrUniversalView) {
                                                     const courseMap = new Map();
                                                     items.forEach(item => {
                                                         const key = `${item.course_id}-${item.session_type}`;
                                                         if (courseMap.has(key)) {
                                                             const existing = courseMap.get(key);
                                                             // merge sections
-                                                            if (!existing.section.includes(item.section)) {
+                                                            if (!existing.section.split(', ').includes(item.section)) {
                                                                 existing.section += `, ${item.section}`;
+                                                            }
+                                                            // merge teachers
+                                                            if (existing.teacher_name && item.teacher_name && !existing.teacher_name.split(', ').includes(item.teacher_name)) {
+                                                                existing.teacher_name += `, ${item.teacher_name}`;
+                                                            }
+                                                            // merge rooms
+                                                            if (existing.room && item.room && !existing.room.split(', ').includes(item.room)) {
+                                                                existing.room += `, ${item.room}`;
                                                             }
                                                         } else {
                                                             courseMap.set(key, { ...item });
@@ -1095,10 +1104,10 @@ function ViewTimetable() {
                                                                 {/* Hide Faculty and Room for Electives and Projects */}
                                                                 {!classItem.is_elective && !isProject && (
                                                                     <>
-                                                                        <div className="class-teacher" style={{ fontSize: '0.65rem', marginTop: '2px' }}>
+                                                                        <div className="class-teacher" style={{ fontSize: '0.65rem', marginTop: '2px', wordBreak: 'break-word', lineHeight: '1.2' }}>
                                                                             {classItem.teacher_name}
                                                                         </div>
-                                                                        <div className="class-room-sec" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem', fontWeight: 700, marginTop: '4px' }}>
+                                                                        <div className="class-room-sec" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '2px', fontSize: '0.6rem', fontWeight: 700, marginTop: '4px' }}>
                                                                             <span>Room: {classItem.room}</span>
                                                                             <span>Sec: {classItem.section}</span>
                                                                         </div>
@@ -1106,9 +1115,8 @@ function ViewTimetable() {
                                                                 )}
 
                                                                 {/* If it IS an elective/project, just show a minimal indicator if needed, but per-request: remove faculty/room alone */}
-                                                                {/* (Section is usually implicit in the group for electives, but for Projects we hide it too per request 'rest all mention same for free elective anf project phase' - wait, user said "just remove that faculty name, room name alone, rest all mention same for free elective and project phase".) */}
                                                                 {(classItem.is_elective || isProject) && (
-                                                                    <div className="class-room-sec" style={{ display: 'flex', justifyContent: 'flex-end', fontSize: '0.6rem', fontWeight: 700, marginTop: '4px' }}>
+                                                                    <div className="class-room-sec" style={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap', fontSize: '0.6rem', fontWeight: 700, marginTop: '4px' }}>
                                                                         <span>{classItem.section}</span>
                                                                     </div>
                                                                 )}
