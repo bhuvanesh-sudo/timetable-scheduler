@@ -305,13 +305,21 @@ export default function FacultyMapping() {
                                                                     LAB
                                                                 </span>
                                                             )}
-                                                            {c.is_elective ? <ElectivePill group={c.elective_group} /> : (
-                                                                c.is_adm || c.course_id?.toUpperCase().includes('AVP') ? (
-                                                                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6366f1' }}>AVP</span>
-                                                                ) : (
-                                                                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Core Course</span>
-                                                                )
-                                                            )}
+                                                            {(() => {
+                                                                if (c.is_project || c.course_name?.toLowerCase().includes('project phase')) {
+                                                                    return <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#7c3aed', textTransform: 'uppercase' }}>Project</span>;
+                                                                }
+                                                                if (c.is_adm || c.course_id?.toUpperCase().includes('AVP')) {
+                                                                    return <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#6366f1', textTransform: 'uppercase' }}>AVP</span>;
+                                                                }
+                                                                if (c.is_elective) {
+                                                                    const g = c.elective_group || '';
+                                                                    if (g.includes('PE_')) return <span className="elective-badge pe-badge">PE</span>;
+                                                                    if (g.includes('FREE_')) return <span className="elective-badge fe-badge">FE</span>;
+                                                                    return <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Elective</span>;
+                                                                }
+                                                                return <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Core Course</span>;
+                                                            })()}
                                                         </div>
                                                     </td>
                                                     <td style={{ fontSize: '0.8rem', color: style.text || 'var(--text-muted)' }}>
