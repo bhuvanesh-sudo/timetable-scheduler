@@ -6,7 +6,7 @@
 - [Architecture](#architecture)
 - [The Web Dashboard](#the-web-dashboard)
 - [The Generator Engine](#the-generator-engine)
-- [Asynchronous & Synchronous Generation](#asynchronous--synchronous-generation)
+- [Schedule Generation](#schedule-generation)
 - [Role-Based Access Control](#role-based-access-control)
 - [Project Structure](#project-structure)
 - [Testing](#testing)
@@ -20,7 +20,7 @@ More documentation available at `/docs`. See:
 - [Database Documentation](docs/database.md)
 
 ## Overview
-Timetable Scheduler is a unified academic scheduling platform that seamlessly generates, validates, and manages university timetables mathematically. By integrating directly with institutional constraints (faculty workloads, room capacities, consecutive labs), it acts as an intelligent constraint-satisfaction engine to perfectly synchronize resources—effectively eliminating manual timetable clashes.
+Timetable Scheduler is an academic scheduling platform that generates, validates, and manages university timetables. By integrating with institutional constraints (faculty workloads, room capacities, consecutive labs), it acts as a constraint-satisfaction engine to synchronize resources and eliminate manual timetable clashes.
 
 ## Getting Started
 
@@ -95,28 +95,28 @@ npm run dev
 The platform utilizes a **React + Vite** frontend and a **Django / Django REST Framework** backend, grounded by a robust relational database.
 
 ### The Database Layer
-The system maps core academic resources (Teachers, Rooms, Courses) using **PostgreSQL** in production (and **SQLite** for local development). Django's ORM strictly enforces constraints and data normalization. The architecture intrinsically separates active algorithmic assignments from governance and historical archive tables.
+The system maps core academic resources (Teachers, Rooms, Courses) using **PostgreSQL** in production (and **SQLite** for local development). Django's ORM strictly enforces constraints and data normalization. The architecture separates active assignments from governance and historical archive tables.
 
 ### The Web Dashboard
-The web dashboard allows institutional users to manage academic operations effortlessly. It enables users to:
+The web dashboard allows institutional users to manage academic operations. It enables users to:
 - **Log In** via role-based access tokens (Admin, HOD, Faculty).
 - **Generate Timetables** using a unified modal constraint checklist.
 - **View Core Analytics** such as faculty weekly workload and room utilization.
 - **Manage Change Requests** from faculty seeking adjustments.
-- **Execute Semester Rollovers** to seamlessly transition to new academic terms by archiving data.
-- **Maintain Data Integrity** with one-click database backups and restorations.
-- **Audit Logging** tracking all significant administrative system changes.
+- **Execute Semester Rollovers** to transition to new academic terms by archiving data.
+- **Maintain Data Integrity** with database backups and restorations.
+- **Audit Logging** tracking significant administrative system changes.
 - **Automated Email Notifications** alerting faculty via SMTP when new schedules are published.
 - **Export and Import** timetable mappings in CSV format.
 
 ### The Generator Engine
-The core of the system resides in the Django backend (`scheduler/algorithm.py`). It uses an algorithmic constraint-satisfaction approach (backtracking search with heuristics) to map variables:
+The core of the system resides in the Django backend (`scheduler/algorithm.py`). It uses a backtracking search with heuristics to map variables:
 - **Entities:** Teachers, Courses (Lectures, Tutorials, Labs), Rooms, Sections.
 - **Constraints:** Total teacher workload, room availability, overlapping classes, concurrent parallel electives.
-- **Elective Resolution:** The engine seamlessly groups parallel elective sessions (e.g., PE1, PE2) into unified time blocks to prevent double-booking faculty mathematically.
+- **Elective Resolution:** The engine groups parallel elective sessions (e.g., PE1, PE2) into unified time blocks to prevent double-booking faculty.
 
-### Asynchronous & Synchronous Generation
-Because scheduling 150+ teachers and sections involves resolving millions of constraints mathematically, the API defaults to trying to delegate generation to an asynchronous background task if a Celery broker is active. However, if no broker is active, the engine safely falls back to synchronous execution within the main Python thread.
+### Schedule Generation
+The API runs the schedule generation algorithm synchronously in the main Python thread.
 - Triggering generation creates a `PENDING` schedule entity.
 - The constraint engine computes combinations and proves validity.
 - Once generation resolves with zero clashes, the output writes directly to the PostgreSQL database, turning the status to `COMPLETED`.

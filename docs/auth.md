@@ -1,6 +1,6 @@
 # Timetable Scheduler Authentication & Authorization
 
-The Timetable Scheduler platform operates strictly on a **Role-Based Access Control (RBAC)** architecture utilizing **JSON Web Tokens (JWT)**.
+The Timetable Scheduler platform operates on a **Role-Based Access Control (RBAC)** architecture using **JSON Web Tokens (JWT)**.
 
 ## 1. Authentication Strategy
 
@@ -27,7 +27,7 @@ The backend abstracts authentication through a custom user model `User` integrat
 
 ## 3. Organizational Roles & Permissions
 
-The application implements three hardened permission tiers managed via custom DRF decorators in `/accounts/permissions.py`:
+The application implements three permission tiers managed via custom DRF decorators in `/accounts/permissions.py`:
 
 ### Tier 1: System Admin / Principal
 *Absolute global access.*
@@ -76,4 +76,4 @@ def trigger_generation(request):
 ## 5. Security Measures
 - **Password Hashing:** Django’s native `Argon2` or `PBKDF2` hashing is enforced.
 - **CSRF Protection:** Managed seamlessly by Vite + DRF proxy settings during form POST operations.
-- **Stateless Verification:** Backend maintains no session state; validation strictly relies on JWT cryptographic signatures preventing horizontal payload tampering.
+- **Stateless Verification:** Backend maintains no session state; validation relies on JWT cryptographic signatures preventing payload tampering.

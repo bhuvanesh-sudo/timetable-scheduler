@@ -1,8 +1,8 @@
 # Timetable Scheduler Database Architecture
 
-The platform uses a robust relational architecture structured on PostgreSQL (or SQLite locally). The database is split natively into functional domains: **Core Academic Data**, **Algorithmic State**, and **Governance Operations**.
+The platform uses a relational architecture structured on PostgreSQL (or SQLite locally). The database is split into functional domains: **Core Academic Data**, **Algorithmic State**, and **Governance Operations**.
 
-Django’s ORM serves as the primary gateway, enforcing strict foreign key constraints between teachers, rooms, and algorithmic allocations.
+Django’s ORM serves as the primary gateway, enforcing foreign key constraints between teachers, rooms, and algorithmic allocations.
 
 ## Entity Relationship Summary
 
@@ -66,6 +66,6 @@ entries = ScheduleEntry.objects.filter(schedule=instance).select_related(
 
 ## Data Lifecycle
 
-Due to massive data bloating over thousands of `ScheduleEntry` operations each semester:
+To manage the large volume of `ScheduleEntry` operations each semester:
 1. **Semester Rollover Script (`manage.py rollover`):** Freezes the current state, drops all active mapping and unneeded scratch records, tags all existing `Schedule` instances as `is_historical=True`.
 2. **Backups (`manage.py backup_db`):** Creates `.json` dumps of the database capable of completely reconstructing an exact prior state via Django's `loaddata` parser.

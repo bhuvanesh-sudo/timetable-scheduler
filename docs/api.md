@@ -46,7 +46,7 @@ Retrieves the profile and role parameters of the currently authenticated user.
 
 ### Trigger Generation
 `POST /api/scheduler/generate`
-Initiates an async algorithmic generation of the timetable. (Requires HOD/Admin).
+Initiates algorithmic generation of the timetable. (Requires HOD/Admin).
 - **Payload:**
 ```json
 {
@@ -60,7 +60,7 @@ Initiates an async algorithmic generation of the timetable. (Requires HOD/Admin)
 {
   "schedule_id": 45,
   "status": "PENDING",
-  "message": "Schedule generation queued successfully." // Or "Schedule generated synchronously"
+  "message": "Schedule generation started successfully."
 }
 ```
 
