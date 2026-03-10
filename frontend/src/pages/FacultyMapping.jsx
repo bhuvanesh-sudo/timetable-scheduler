@@ -306,7 +306,11 @@ export default function FacultyMapping() {
                                                                 </span>
                                                             )}
                                                             {c.is_elective ? <ElectivePill group={c.elective_group} /> : (
-                                                                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Core Course</span>
+                                                                c.is_adm || c.course_id?.toUpperCase().includes('AVP') ? (
+                                                                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6366f1' }}>AVP</span>
+                                                                ) : (
+                                                                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Core Course</span>
+                                                                )
                                                             )}
                                                         </div>
                                                     </td>
