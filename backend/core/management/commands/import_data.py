@@ -36,95 +36,125 @@ class Command(BaseCommand):
         self.import_timeslots()
         self.import_sections()
         self.import_teacher_course_mappings()
+        self.import_elective_allocations()
         self.print_summary()
 
     def import_teachers(self):
-        """Import teachers from teachers.csv"""
+        """Import teachers from teachers1.csv and teachers2.csv"""
         self.stdout.write("\nImporting teachers...")
         count = 0
-        filename = "teachers.csv"
-        filepath = os.path.join(self.datasets_path, filename)
-        
-        if not os.path.exists(filepath):
-            self.stdout.write(self.style.WARNING(f"  File not found: {filename}"))
-            return
+        for filename in ["teachers1.csv", "teachers2.csv"]:
+            filepath = os.path.join(self.datasets_path, filename)
+            
+            if not os.path.exists(filepath):
+                self.stdout.write(self.style.WARNING(f"  File not found: {filename}"))
+                continue
 
-        with open(filepath, "r") as file:
-            content = file.read(2048)
-            file.seek(0)
-            dialect = csv.Sniffer().sniff(content) if ',' in content or '\t' in content else None
-            reader = csv.DictReader(file, dialect=dialect) if dialect else csv.DictReader(file)
-            for row in reader:
-                Teacher.objects.update_or_create(
-                    teacher_id=row["teacher_id"].strip(),
-                    defaults={
-                        "teacher_name": row["teacher_name"].strip(),
-                        "email": row["email"].strip(),
-                        "department": row["department"].strip(),
-                        "max_hours_per_week": int(row["max_hours_per_week"]),
-                    },
-                )
-                count += 1
-        self.stdout.write(self.style.SUCCESS(f"  ✓ Imported {count} teachers"))
-
-    def import_courses(self):
-        """Import courses from courses.csv and electives.csv"""
-        self.stdout.write("\nImporting courses...")
-        count = 0
-
-        # Regular courses
-        filepath = os.path.join(self.datasets_path, "courses.csv")
-        if os.path.exists(filepath):
             with open(filepath, "r") as file:
                 content = file.read(2048)
                 file.seek(0)
                 dialect = csv.Sniffer().sniff(content) if ',' in content or '\t' in content else None
                 reader = csv.DictReader(file, dialect=dialect) if dialect else csv.DictReader(file)
                 for row in reader:
-                    Course.objects.update_or_create(
-                        course_id=row["course_id"].strip(),
+                    Teacher.objects.update_or_create(
+                        teacher_id=row["teacher_id"].strip(),
                         defaults={
-                            "course_name": row["course_name"].strip(),
-                            "year": int(row["year"]),
-                            "semester": row["semester"].strip().lower(),
-                            "lectures": int(row["lectures"]),
-                            "theory": int(row["theory"]),
-                            "practicals": int(row["practicals"]),
-                            "credits": int(row["credits"]),
-                            "is_lab": bool(int(row["is_lab"])),
-                            "is_elective": bool(int(row["is_elective"])),
-                            "is_project": bool(int(row.get("is_project", 0))),
-                            "weekly_slots": int(row["weekly_slots"]),
+                            "teacher_name": row["teacher_name"].strip(),
+                            "email": row["email"].strip(),
+                            "department": row["department"].strip(),
+                            "max_hours_per_week": int(row["max_hours_per_week"]),
                         },
                     )
                     count += 1
+        self.stdout.write(self.style.SUCCESS(f"  ✓ Imported {count} teachers"))
 
-        # Electives
-        filepath_electives = os.path.join(self.datasets_path, "electives.csv")
-        if os.path.exists(filepath_electives):
-            with open(filepath_electives, "r") as file:
-                content = file.read(2048)
-                file.seek(0)
-                dialect = csv.Sniffer().sniff(content) if ',' in content or '\t' in content else None
-                reader = csv.DictReader(file, dialect=dialect) if dialect else csv.DictReader(file)
-                for row in reader:
-                    Course.objects.get_or_create(
-                        course_id=row["course_id"].strip(),
-                        defaults={
-                            "course_name": row["course_name"].strip(),
-                            "year": 1,
-                            "semester": "odd",
-                            "lectures": 3,
-                            "theory": 3,
-                            "practicals": 0,
-                            "credits": 3,
-                            "is_lab": False,
-                            "is_elective": True,
-                            "weekly_slots": 3,
-                        },
-                    )
-                    count += 1
-        self.stdout.write(self.style.SUCCESS(f"  ✓ Imported {count} total courses"))
+    def import_courses(self):
+        """Import courses from elective_courses_updated.csv (primary source)"""
+        self.stdout.write("\nImporting courses from elective_courses_updated.csv...")
+        count = 0
+        
+        filepath = os.path.join(self.datasets_path, "elective_courses_updated.csv")
+        if not os.path.exists(filepath):
+            self.stdout.write(self.style.ERROR(f"  File not found: elective_courses_updated.csv"))
+            return
+
+        with open(filepath, "r", encoding="utf-8") as file:
+            content = file.read(2048)
+            file.seek(0)
+            dialect = csv.Sniffer().sniff(content) if ',' in content or '\t' in content else None
+            reader = csv.DictReader(file, dialect=dialect) if dialect else csv.DictReader(file)
+            for row in reader:
+                course_id = row["course_id"].strip()
+                is_adm = "ADM" in course_id.upper()
+                
+                e_group = row.get("elective_group", "NA").strip()
+                if e_group == "NA" or not e_group:
+                    e_group = None
+                    
+                is_sched = True
+                if "is_schedulable" in row:
+                    is_sched = str(row["is_schedulable"]).strip() == "1"
+                
+                # Force Year 4 to be schedulable based on user request "timetable is not generated for 4th year classes"
+                if int(row["year"]) == 4:
+                    is_sched = True
+                
+                # ADM courses are not electives by definition in this university
+                is_elective = str(row["is_elective"]).strip() == "1"
+                if is_adm:
+                    is_elective = False
+
+                lectures = int(row["lectures"])
+                theory = int(row["theory"])
+                practicals = int(row["practicals"])
+                csv_weekly_slots = int(row["weekly_slots"])
+                
+                # Semester correction for Year 4 & Project Phases:
+                sem = row["semester"].strip().lower()
+                year_val = int(row["year"])
+                
+                # Special handling for Project Phases
+                if "Project Phase" in row["course_name"]:
+                    lectures = 0
+                    theory = 0
+                    practicals = int(row["credits"]) # 1:1 slot ratio
+                    computed_weekly_slots = practicals
+                    
+                    if "Phase III" in row["course_name"]:
+                        sem = "even"
+                    elif "Phase II" in row["course_name"]:
+                        sem = "odd"
+                    else:
+                        sem = "even" # Phase I
+                else:
+                    # RULE: Weekly Slots = Lectures + Theory + Practicals
+                    computed_weekly_slots = lectures + theory + practicals
+                    
+                    if year_val == 4:
+                        if (e_group and "SEM7" in e_group) or course_id in ["PE4", "PE5", "PE6", "FREE2"]:
+                            sem = "odd"
+                
+                Course.objects.update_or_create(
+                    course_id=course_id,
+                    defaults={
+                        "course_name": row["course_name"].strip(),
+                        "year": year_val,
+                        "semester": sem,
+                        "lectures": lectures,
+                        "theory": theory,
+                        "practicals": practicals,
+                        "credits": int(row["credits"]),
+                        "is_lab": str(row["is_lab"]).strip() == "1" or "Project Phase" in row["course_name"],
+                        "is_elective": is_elective,
+                        "is_adm": is_adm,
+                        "elective_type": row.get("elective_type", "").strip() or None,
+                        "weekly_slots": computed_weekly_slots,
+                        "elective_group": e_group,
+                        "is_schedulable": is_sched,
+                    },
+                )
+                count += 1
+        self.stdout.write(self.style.SUCCESS(f"  ✓ Imported {count} courses"))
 
     def import_rooms(self):
         """Import rooms from rooms.csv"""
@@ -204,7 +234,7 @@ class Command(BaseCommand):
         self.stdout.write("\nImporting teacher-course mappings...")
         count = 0
         skipped = 0
-        for filename in ["oddMapping.csv", "evenMapping.csv"]:
+        for filename in ["mapping1.csv", "mapping2.csv"]:
             filepath = os.path.join(self.datasets_path, filename)
             if not os.path.exists(filepath):
                 self.stdout.write(self.style.WARNING(f"  File not found: {filename}"))
@@ -228,6 +258,41 @@ class Command(BaseCommand):
                     except (Teacher.DoesNotExist, Course.DoesNotExist):
                         skipped += 1
         self.stdout.write(self.style.SUCCESS(f"  ✓ Imported {count} mappings (Skipped {skipped})"))
+
+    def import_elective_allocations(self):
+        """Import elective allocations from elective_allocation.csv"""
+        self.stdout.write("\nImporting elective allocations...")
+        filepath = os.path.join(self.datasets_path, "elective_allocation.csv")
+        if not os.path.exists(filepath):
+            self.stdout.write(self.style.WARNING("  File not found: elective_allocation.csv"))
+            return
+            
+        count = 0
+        skipped = 0
+        with open(filepath, "r", encoding="utf-8") as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                if not row.get("teacher_id") or not row.get("course_id"):
+                    continue
+                try:
+                    teacher = Teacher.objects.get(teacher_id=row["teacher_id"].strip())
+                    course = Course.objects.get(course_id=row["course_id"].strip())
+                    section_grp = row.get("section_group", "").strip() or None
+                    
+                    TeacherCourseMapping.objects.update_or_create(
+                        teacher=teacher,
+                        course=course,
+                        section=None,
+                        year=course.year,
+                        defaults={
+                            "preference_level": 3,
+                            "section_group": section_grp
+                        },
+                    )
+                    count += 1
+                except (Teacher.DoesNotExist, Course.DoesNotExist):
+                    skipped += 1
+        self.stdout.write(self.style.SUCCESS(f"  ✓ Imported {count} elective allocations (Skipped {skipped})"))
 
     def print_summary(self):
         """Print summary of imported data"""

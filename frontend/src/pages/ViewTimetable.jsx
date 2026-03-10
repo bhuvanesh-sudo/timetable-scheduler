@@ -16,6 +16,7 @@ import { scheduleAPI, schedulerAPI, sectionAPI, teacherAPI, courseAPI, roomAPI, 
 import { useAuth } from '../context/AuthContext';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import ElectiveMappingModal from '../components/ElectiveMappingModal';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -53,6 +54,7 @@ function ViewTimetable() {
     // ── Verification modal ──
     const [verificationResult, setVerificationResult] = useState(null);
     const [showVerificationModal, setShowVerificationModal] = useState(false);
+    const [showElectiveModal, setShowElectiveModal] = useState(false);
     const [verifying, setVerifying] = useState(false);
 
     // ── Publish state ──
@@ -366,9 +368,24 @@ function ViewTimetable() {
             const rowData = [`Slot ${slot}`];
             DAYS.forEach(day => {
                 const classes = timetable[day]?.[slot] || [];
-                const cellContent = classes.map(c =>
-                    `${c.course_code}\n${c.room} (${c.section})` + (c.is_lab_session ? ' [LAB]' : '')
-                ).join('\n\n');
+                const cellContent = classes.map(c => {
+                    const isProject = c.course_name?.toLowerCase().includes('project phase');
+                    const label = (c.is_elective && c.elective_group) ? `[${c.elective_group}]` : c.course_code;
+
+                    let text = `${label}\n${c.course_name}`;
+
+                    // Only add Room/Section for non-electives/non-projects
+                    if (!c.is_elective && !isProject) {
+                        text += `\n${c.room} (${c.section})`;
+                    } else if (c.section) {
+                        // Keep section for electives/projects if specified
+                        text += `\n(${c.section})`;
+                    }
+
+                    if (c.is_lab_session && !isProject) text += ' [LAB]';
+                    if (isProject) text += ' [PROJECT]';
+                    return text;
+                }).join('\n\n');
                 rowData.push(cellContent);
             });
             tableRows.push(rowData);
@@ -392,8 +409,39 @@ function ViewTimetable() {
             columnStyles: { 0: { cellWidth: 20, fontStyle: 'bold' } },
             didParseCell: (data) => {
                 if (data.section === 'body' && data.column.index > 0 && data.cell.raw) {
-                    if (data.cell.raw.toString().includes('[LAB]')) {
-                        data.cell.styles.fillColor = [240, 248, 255];
+                    const cellStr = data.cell.raw.toString();
+                    if (cellStr.includes('[LAB]')) {
+                        data.cell.styles.fillColor = [240, 248, 255]; // Light Blue
+                    }
+                    if (cellStr.includes('[PROJECT]')) {
+                        data.cell.styles.fillColor = [243, 232, 255]; // Light Purple
+                    }
+                    // Clean up markers from display
+                    data.cell.text = data.cell.text.map(t => t.replace(' [LAB]', '').replace(' [PROJECT]', ''));
+                }
+            },
+            didDrawCell: (data) => {
+                if (data.section === 'body' && data.column.index > 0 && data.cell.raw) {
+                    const rawText = data.cell.raw.toString();
+                    if (rawText.includes('[LAB]')) {
+                        // Draw LAB Badge in Top Right of the cell
+                        const slotX = data.cell.x;
+                        const slotY = data.cell.y;
+                        const slotWidth = data.cell.width;
+
+                        doc.setDrawColor(0, 123, 255);
+                        doc.setFillColor(0, 123, 255);
+                        doc.roundedRect(slotX + slotWidth - 12, slotY + 2, 10, 4, 1, 1, "FD");
+
+                        doc.setTextColor(255, 255, 255);
+                        doc.setFontSize(5);
+                        doc.setFont("helvetica", "bold");
+                        doc.text("LAB", slotX + slotWidth - 7, slotY + 5.2, { align: 'center' });
+
+                        // Reset font back to normal for other text
+                        doc.setTextColor(0, 0, 0);
+                        doc.setFontSize(8);
+                        doc.setFont("helvetica", "normal");
                     }
                 }
             }
@@ -784,6 +832,13 @@ function ViewTimetable() {
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                             <button
                                 className="btn btn-primary"
+                                onClick={() => setShowElectiveModal(true)}
+                                style={{ fontSize: '0.875rem', padding: '0.25rem 0.5rem', backgroundColor: '#eab308', borderColor: '#eab308' }}
+                            >
+                                ✨ View Elective Handlers
+                            </button>
+                            <button
+                                className="btn btn-primary"
                                 onClick={handleDownloadPDF}
                                 style={{ fontSize: '0.875rem', padding: '0.25rem 0.5rem' }}
                             >
@@ -833,6 +888,8 @@ function ViewTimetable() {
                         {/* Time Slots */}
                         {SLOTS.map((slot) => (
                             <React.Fragment key={`slot-row-${slot}`}>
+                                {/* Breaks removed entirely from UI as requested */}
+
                                 <div key={`time-${slot}`} className="grid-time">
                                     <div style={{ fontWeight: 700, color: 'var(--primary)' }}>Slot {slot}</div>
                                     <div style={{ fontSize: '0.65rem', opacity: 0.7 }}>
@@ -909,71 +966,184 @@ function ViewTimetable() {
                                             )}
 
                                             {/* Class blocks */}
-                                            {(timetable[day]?.[slot] || []).map((classItem, idx) => {
-                                                const isDraggingThis = dragging?.entryId === classItem.entry_id;
-                                                return (
-                                                    <div
-                                                        key={idx}
-                                                        className={`class-block ${classItem.is_lab_session ? 'lab' : 'theory'} ${classItem.teacher_id === (user?.teacher_id || selectedTeacher) ? 'highlight-teacher' : ''}`}
-                                                        draggable={isAdminOrHOD && !!classItem.entry_id}
-                                                        onDragStart={(e) => handleDragStart(e, classItem, day, slot)}
-                                                        onDragEnd={handleDragEnd}
-                                                        style={{
-                                                            cursor: isAdminOrHOD ? 'grab' : 'default',
-                                                            opacity: isDraggingThis ? 0.35 : 1,
-                                                            transition: 'opacity 0.2s ease, transform 0.2s ease',
-                                                            transform: isDraggingThis ? 'scale(0.95)' : undefined,
-                                                        }}
-                                                        title={
-                                                            isAdminOrHOD
-                                                                ? `Drag to move ${classItem.course_code} (${classItem.section})`
-                                                                : undefined
-                                                        }
-                                                    >
-                                                        {/* Drag handle icon */}
-                                                        {isAdminOrHOD && (
-                                                            <div style={{
-                                                                fontSize: '0.6rem',
-                                                                color: 'var(--text-muted)',
-                                                                marginBottom: '2px',
-                                                                letterSpacing: '1px',
-                                                                userSelect: 'none',
-                                                            }}>
-                                                                ⠿
-                                                            </div>
-                                                        )}
-                                                        <div className="class-code">
-                                                            {classItem.course_code}
-                                                            {classItem.is_lab_session && <span className="lab-badge">LAB</span>}
-                                                        </div>
-                                                        <div className="class-teacher">{classItem.teacher_name}</div>
-                                                        <div className="class-room">Room: {classItem.room}</div>
-                                                        <div className="class-room">Sec: {classItem.section}</div>
+                                            {(() => {
+                                                const items = timetable[day]?.[slot] || [];
 
-                                                        {isAdminOrHOD && (
-                                                            <button
-                                                                className="btn btn-primary"
-                                                                style={{
-                                                                    fontSize: '0.7rem',
-                                                                    padding: '4px 8px',
-                                                                    marginTop: '8px',
-                                                                    width: '100%',
-                                                                    background: 'var(--primary)',
-                                                                    color: '#fff',
-                                                                    fontWeight: 'bold',
-                                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                                                                }}
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    handleOpenSwapModal(classItem);
-                                                                }}
-                                                            >
-                                                                🔄 Swap Faculty
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
+                                                // Grouping Logic for UI Display
+                                                const groupedItems = [];
+
+                                                // If we are filtering by a specific teacher, we should merge identical courses
+                                                // (e.g., Project Phase III spanning multiple sections) into a single card
+                                                const isTeacherView = Boolean(selectedTeacher || user?.role === 'FACULTY');
+
+                                                if (isTeacherView) {
+                                                    const courseMap = new Map();
+                                                    items.forEach(item => {
+                                                        const key = `${item.course_id}-${item.session_type}`;
+                                                        if (courseMap.has(key)) {
+                                                            const existing = courseMap.get(key);
+                                                            // merge sections
+                                                            if (!existing.section.includes(item.section)) {
+                                                                existing.section += `, ${item.section}`;
+                                                            }
+                                                        } else {
+                                                            courseMap.set(key, { ...item });
+                                                        }
+                                                    });
+                                                    groupedItems.push(...Array.from(courseMap.values()));
+                                                } else {
+                                                    // Standard grouping for Section view (grouping electives)
+                                                    const electiveGroupsSeen = new Set();
+                                                    const groupCounts = {};
+                                                    items.forEach(item => {
+                                                        if (item.is_elective && item.elective_group) {
+                                                            groupCounts[item.elective_group] = (groupCounts[item.elective_group] || 0) + 1;
+                                                        }
+                                                    });
+
+                                                    items.forEach(item => {
+                                                        if (item.is_elective && item.elective_group && groupCounts[item.elective_group] > 1) {
+                                                            if (!electiveGroupsSeen.has(item.elective_group)) {
+                                                                electiveGroupsSeen.add(item.elective_group);
+                                                                
+                                                                // Aggregate unique courses and teachers for this elective group time block
+                                                                const groupItems = items.filter(i => i.is_elective && i.elective_group === item.elective_group);
+                                                                const uniqueCourses = [...new Set(groupItems.map(i => i.course_name))].filter(Boolean).join(' / ');
+                                                                const uniqueTeachers = [...new Set(groupItems.map(i => i.teacher_name))].filter(Boolean).join(', ');
+                                                                const uniqueRooms = [...new Set(groupItems.map(i => i.room))].filter(Boolean).join(', ');
+
+                                                                groupedItems.push({
+                                                                    ...item,
+                                                                    is_group_header: true,
+                                                                    course_code: item.elective_group,
+                                                                    course_name: uniqueCourses || (item.elective_type ? `${item.elective_type} Electives` : 'Elective Group'),
+                                                                    teacher_name: uniqueTeachers,
+                                                                    room: uniqueRooms
+                                                                });
+                                                            }
+                                                        } else {
+                                                            groupedItems.push(item);
+                                                        }
+                                                    });
+                                                }
+
+                                                return groupedItems.map((classItem, idx) => {
+                                                    const isDraggingThis = dragging?.entryId === classItem.entry_id;
+
+                                                    // VC-1 Mapping
+                                                    const isProject = classItem.course_name?.toLowerCase().includes('project phase');
+                                                    const sessionTypeClass = isProject ? 'project' : (classItem.session_type?.toLowerCase() || 'theory');
+                                                    const isTeacherHighlight = classItem.teacher_id === (user?.teacher_id || selectedTeacher);
+
+                                                    return (
+                                                        <div
+                                                            key={idx}
+                                                            className={`class-block ${sessionTypeClass} ${isTeacherHighlight ? 'highlight-teacher' : ''}`}
+                                                            draggable={isAdminOrHOD && !!classItem.entry_id}
+                                                            onDragStart={(e) => handleDragStart(e, classItem, day, slot)}
+                                                            onDragEnd={handleDragEnd}
+                                                            style={{
+                                                                cursor: isAdminOrHOD ? 'grab' : 'default',
+                                                                opacity: isDraggingThis ? 0.35 : 1,
+                                                                transition: 'opacity 0.2s ease, transform 0.2s ease',
+                                                                transform: isDraggingThis ? 'scale(0.95)' : undefined,
+                                                                padding: '10px',
+                                                                minHeight: classItem.is_lab_session ? '100%' : 'auto',
+                                                                position: 'relative'
+                                                            }}
+                                                            title={
+                                                                isAdminOrHOD
+                                                                    ? `Drag to move ${classItem.course_code} (${classItem.section})`
+                                                                    : undefined
+                                                            }
+                                                        >
+                                                            {/* Drag handle icon */}
+                                                            {isAdminOrHOD && (
+                                                                <div style={{
+                                                                    fontSize: '0.6rem',
+                                                                    color: 'var(--text-muted)',
+                                                                    marginBottom: '4px',
+                                                                    letterSpacing: '1px',
+                                                                    userSelect: 'none',
+                                                                }}>
+                                                                    ⠿
+                                                                </div>
+                                                            )}
+                                                            {/* LAB Badge */}
+                                                            {classItem.is_lab_session && !isProject && (
+                                                                <div style={{
+                                                                    position: 'absolute',
+                                                                    top: '8px',
+                                                                    right: '8px',
+                                                                    backgroundColor: '#007bff',
+                                                                    color: 'white',
+                                                                    fontSize: '0.55rem',
+                                                                    fontWeight: 800,
+                                                                    padding: '2px 6px',
+                                                                    borderRadius: '8px',
+                                                                    textTransform: 'uppercase',
+                                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                                                    zIndex: 10
+                                                                }}>
+                                                                    LAB
+                                                                </div>
+                                                            )}
+                                                            <div className="class-content" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                                {/* VC-3 Display Format */}
+                                                                <div className="class-code" style={{ fontWeight: 800, fontSize: '0.85rem' }}>
+                                                                    {classItem.is_elective && classItem.elective_group
+                                                                        ? `[${classItem.elective_group}]`
+                                                                        : classItem.course_code}
+                                                                </div>
+                                                                <div className="class-name" style={{ fontSize: '0.7rem', fontWeight: 600, opacity: 0.9, lineHeight: '1.2' }}>
+                                                                    {classItem.course_name}
+                                                                </div>
+
+                                                                {/* Only hide for Projects, but show aggregated Teacher/Room for Electives now */}
+                                                                {!isProject && (
+                                                                    <>
+                                                                        <div className="class-teacher" style={{ fontSize: '0.65rem', marginTop: '2px', fontStyle: classItem.is_elective ? 'italic' : 'normal' }}>
+                                                                            {classItem.teacher_name}
+                                                                        </div>
+                                                                        <div className="class-room-sec" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem', fontWeight: 700, marginTop: '4px' }}>
+                                                                            <span>Room: {classItem.room}</span>
+                                                                            <span>Sec: {classItem.section}</span>
+                                                                        </div>
+                                                                    </>
+                                                                )}
+
+                                                                {isProject && (
+                                                                    <div className="class-room-sec" style={{ display: 'flex', justifyContent: 'flex-end', fontSize: '0.6rem', fontWeight: 700, marginTop: '4px' }}>
+                                                                        <span>{classItem.section}</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+
+                                                            {isAdminOrHOD && (
+                                                                <button
+                                                                    className="btn btn-primary"
+                                                                    style={{
+                                                                        fontSize: '0.6rem',
+                                                                        padding: '2px 6px',
+                                                                        marginTop: '8px',
+                                                                        width: '100%',
+                                                                        background: 'rgba(0,0,0,0.05)',
+                                                                        color: 'inherit',
+                                                                        border: '1px solid currentColor',
+                                                                        fontWeight: 'bold',
+                                                                    }}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleOpenSwapModal(classItem);
+                                                                    }}
+                                                                >
+                                                                    Swap Faculty
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })
+                                            })()}
                                         </div>
                                     );
                                 })}
@@ -1171,6 +1341,15 @@ function ViewTimetable() {
                         </button>
                     </div>
                 </div>
+            )}
+
+            {/* Elective Mapping Modal */}
+            {showElectiveModal && (
+                <ElectiveMappingModal
+                    isOpen={showElectiveModal}
+                    onClose={() => setShowElectiveModal(false)}
+                    scheduleId={selectedSchedule || ''}
+                />
             )}
         </div>
     );

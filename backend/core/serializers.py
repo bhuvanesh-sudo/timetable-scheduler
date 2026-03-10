@@ -278,6 +278,10 @@ class ScheduleSerializer(serializers.ModelSerializer):
             "total_conflicts",
         ]
         read_only_fields = ["schedule_id", "created_at", "completed_at"]
+        extra_kwargs = {
+            "year": {"required": False, "allow_null": True},
+            "name": {"required": False},
+        }
 
     def get_total_entries(self, obj):
         """Get total number of schedule entries"""
@@ -286,6 +290,7 @@ class ScheduleSerializer(serializers.ModelSerializer):
     def get_total_conflicts(self, obj):
         """Get total number of unresolved conflicts"""
         return obj.conflicts.filter(resolved=False).count()
+
 
 
 class ScheduleEntrySerializer(serializers.ModelSerializer):
@@ -301,6 +306,7 @@ class ScheduleEntrySerializer(serializers.ModelSerializer):
     is_elective = serializers.BooleanField(source="course.is_elective", read_only=True)
     is_project = serializers.BooleanField(source="course.is_project", read_only=True)
     elective_type = serializers.CharField(source="course.elective_type", read_only=True, allow_null=True)
+    elective_group = serializers.CharField(source="course.elective_group", read_only=True, allow_null=True)
     teacher_name = serializers.CharField(source="teacher.teacher_name", read_only=True)
     room_name = serializers.CharField(source="room.room_id", read_only=True)
     room_type = serializers.CharField(source="room.room_type", read_only=True)
@@ -324,6 +330,7 @@ class ScheduleEntrySerializer(serializers.ModelSerializer):
             "is_elective",
             "is_project",
             "elective_type",
+            "elective_group",
             "teacher",
             "teacher_name",
             "room",
