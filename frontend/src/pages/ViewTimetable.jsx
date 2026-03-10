@@ -1005,13 +1005,20 @@ function ViewTimetable() {
                                                         if (item.is_elective && item.elective_group && groupCounts[item.elective_group] > 1) {
                                                             if (!electiveGroupsSeen.has(item.elective_group)) {
                                                                 electiveGroupsSeen.add(item.elective_group);
+                                                                
+                                                                // Aggregate unique courses and teachers for this elective group time block
+                                                                const groupItems = items.filter(i => i.is_elective && i.elective_group === item.elective_group);
+                                                                const uniqueCourses = [...new Set(groupItems.map(i => i.course_name))].filter(Boolean).join(' / ');
+                                                                const uniqueTeachers = [...new Set(groupItems.map(i => i.teacher_name))].filter(Boolean).join(', ');
+                                                                const uniqueRooms = [...new Set(groupItems.map(i => i.room))].filter(Boolean).join(', ');
+
                                                                 groupedItems.push({
                                                                     ...item,
                                                                     is_group_header: true,
                                                                     course_code: item.elective_group,
-                                                                    course_name: item.elective_type ? `${item.elective_type} Electives` : 'Elective Group',
-                                                                    teacher_name: 'Multiple Faculty',
-                                                                    room: 'Various Rooms'
+                                                                    course_name: uniqueCourses || (item.elective_type ? `${item.elective_type} Electives` : 'Elective Group'),
+                                                                    teacher_name: uniqueTeachers,
+                                                                    room: uniqueRooms
                                                                 });
                                                             }
                                                         } else {
@@ -1092,10 +1099,10 @@ function ViewTimetable() {
                                                                     {classItem.course_name}
                                                                 </div>
 
-                                                                {/* Hide Faculty and Room for Electives and Projects */}
-                                                                {!classItem.is_elective && !isProject && (
+                                                                {/* Only hide for Projects, but show aggregated Teacher/Room for Electives now */}
+                                                                {!isProject && (
                                                                     <>
-                                                                        <div className="class-teacher" style={{ fontSize: '0.65rem', marginTop: '2px' }}>
+                                                                        <div className="class-teacher" style={{ fontSize: '0.65rem', marginTop: '2px', fontStyle: classItem.is_elective ? 'italic' : 'normal' }}>
                                                                             {classItem.teacher_name}
                                                                         </div>
                                                                         <div className="class-room-sec" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem', fontWeight: 700, marginTop: '4px' }}>
@@ -1105,9 +1112,7 @@ function ViewTimetable() {
                                                                     </>
                                                                 )}
 
-                                                                {/* If it IS an elective/project, just show a minimal indicator if needed, but per-request: remove faculty/room alone */}
-                                                                {/* (Section is usually implicit in the group for electives, but for Projects we hide it too per request 'rest all mention same for free elective anf project phase' - wait, user said "just remove that faculty name, room name alone, rest all mention same for free elective and project phase".) */}
-                                                                {(classItem.is_elective || isProject) && (
+                                                                {isProject && (
                                                                     <div className="class-room-sec" style={{ display: 'flex', justifyContent: 'flex-end', fontSize: '0.6rem', fontWeight: 700, marginTop: '4px' }}>
                                                                         <span>{classItem.section}</span>
                                                                     </div>
