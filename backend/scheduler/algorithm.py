@@ -230,76 +230,47 @@ class TimetableScheduler:
             t_type = TYPE_FE if "FREE" in g_name.upper() else TYPE_PE
             s_type = 'FE' if t_type == TYPE_FE else 'PE'
             
-            # Identify distinct requirements in this group (placeholders like PE1, PE2, PE4, PE5, PE6, FREE1, FREE2)
-            # These are identified by having short course IDs (e.g., 2-5 chars)
-            placeholders = sorted([c for c in courses if len(c.course_id) <= 5], key=lambda x: x.course_id)
-            if not placeholders: placeholders = [courses[0]]
-            
             # Master map for this group
             group_mappings = TeacherCourseMapping.objects.filter(course__in=courses).select_related('teacher', 'course', 'section')
+            if not group_mappings: continue
+
             busy_teachers = set(m.teacher for m in group_mappings)
-            available_teachers = sorted(list(busy_teachers), key=lambda x: x.teacher_id)
             target_sections = sorted([s for s in sections if s.year == year], key=lambda x: x.class_id)
             if not target_sections: continue
 
-            # For EACH requirement (e.g., PE4, PE5, PE6), generate a separate parallel session plan
-            for p_idx, placeholder in enumerate(placeholders):
-                # Build session plan for this specific requirement using its L, T, P
-                session_plan = []
-                for _ in range(placeholder.lectures): session_plan.append({'type': t_type, 'block_size': 1, 'session_type': s_type})
-                for _ in range(placeholder.theory): session_plan.append({'type': TYPE_TUTORIAL, 'block_size': 1, 'session_type': 'TUTORIAL'})
-                if placeholder.practicals > 0:
-                    session_plan.append({'type': TYPE_PRACTICAL, 'block_size': placeholder.practicals, 'session_type': 'PRACTICAL'})
+            # Build unified session plan for this elective group based on its L, T, P
+            base_course = courses[0]
+            session_plan = []
+            for _ in range(base_course.lectures): session_plan.append({'type': t_type, 'block_size': 1, 'session_type': s_type})
+            for _ in range(base_course.theory): session_plan.append({'type': TYPE_TUTORIAL, 'block_size': 1, 'session_type': 'TUTORIAL'})
+            if base_course.practicals > 0:
+                session_plan.append({'type': TYPE_PRACTICAL, 'block_size': base_course.practicals, 'session_type': 'PRACTICAL'})
 
-                for session in session_plan:
-                    sub_tasks = []
-                    task_busy_teachers = set()
-                    
-                    for idx, sec in enumerate(target_sections):
-                        # Filter mappings for this specific section or its group (A, B, C...)
-                        sec_mappings = [
-                            m for m in group_mappings 
-                            if m.section == sec or (m.section_group and m.section_group in sec.class_id.upper())
-                        ]
-                        
-                        # Distribute mappings across requirements (PE1 maps to first, PE2 to second, etc.)
-                        m = None
-                        if sec_mappings:
-                            m = sec_mappings[p_idx % len(sec_mappings)]
-                        
-                        if m:
-                            current_course = m.course if m.course.is_elective else placeholder
-                            sub_tasks.append({
-                                'course': current_course, 
-                                'teacher': m.teacher, 
-                                'sections': [sec], 
-                                'session_type': session['session_type'],
-                                'display_name': placeholder.course_name
-                            })
-                            task_busy_teachers.add(m.teacher)
-                        else:
-                            # Fallback: distribute available teachers across placeholders too
-                            if available_teachers:
-                                # Combine sec index and requirement index for distribution
-                                t_idx = (idx + p_idx) % len(available_teachers)
-                                t = available_teachers[t_idx]
-                                sub_tasks.append({
-                                    'course': placeholder, 'teacher': t,
-                                    'sections': [sec], 'session_type': session['session_type'],
-                                    'display_name': placeholder.course_name
-                                })
-                                task_busy_teachers.add(t)
-                    
-                    if sub_tasks:
-                        tasks.append({
-                            'type': session['type'], 
-                            'sub_tasks': sub_tasks, 
-                            'busy_teachers': list(task_busy_teachers),
-                            'block_size': session['block_size'],
-                            'priority': PRIORITY[session['type']], 
-                            'is_group': True,
-                            'group_name': f"{g_name}_{placeholder.course_id}"
-                        })
+            for session in session_plan:
+                sub_tasks = []
+                task_busy_teachers = set()
+                
+                # Each mapping represents a parallel class within the group
+                for m in group_mappings:
+                    sub_tasks.append({
+                        'course': m.course, 
+                        'teacher': m.teacher, 
+                        'sections': target_sections, 
+                        'session_type': session['session_type'],
+                        'display_name': m.course.course_name
+                    })
+                    task_busy_teachers.add(m.teacher)
+                
+                if sub_tasks:
+                    tasks.append({
+                        'type': session['type'], 
+                        'sub_tasks': sub_tasks, 
+                        'busy_teachers': list(task_busy_teachers),
+                        'block_size': session['block_size'],
+                        'priority': PRIORITY[session['type']], 
+                        'is_group': True,
+                        'group_name': g_name
+                    })
         
         # --- SYNCHRONOUS PROJECT PHASES ---
         # Group Project Phases so they schedule at the exact same time across all sections
@@ -485,6 +456,8 @@ class TimetableScheduler:
     def _place_group(self, task, window):
         ts = window[0]
         added = []
+        processed_secs_for_day_count = set()
+        
         for sub in task['sub_tasks']:
             teacher = sub['teacher']
             room = sub['selected_room']
@@ -503,9 +476,13 @@ class TimetableScheduler:
                 self.entries.append(ent)
                 added.append(ent)
                 self.section_busy[(sec.class_id, ts.day, ts.slot_number)] = True
-                # Track day coverage
+                
+                # Track day coverage ONLY ONCE per section per group task to prevent hyper-inflation heuristics
                 key = (sec.class_id, ts.day)
-                self.section_day_counts[key] = self.section_day_counts.get(key, 0) + 1
+                if key not in processed_secs_for_day_count:
+                    self.section_day_counts[key] = self.section_day_counts.get(key, 0) + 1
+                    processed_secs_for_day_count.add(key)
+                    
             self.room_busy[(room.room_id, ts.day, ts.slot_number)] = True
             
         for t in task.get('busy_teachers', []):
@@ -518,11 +495,15 @@ class TimetableScheduler:
 
     def _remove_group(self, task, window, added):
         ts = window[0]
+        processed_secs_for_day_count = set()
+        
         for ent in added: 
             self.entries.remove(ent)
             # Untrack day coverage
             key = (ent['section'].class_id, ent['timeslot'].day)
-            self.section_day_counts[key] = self.section_day_counts.get(key, 0) - 1
+            if key not in processed_secs_for_day_count:
+                self.section_day_counts[key] = self.section_day_counts.get(key, 0) - 1
+                processed_secs_for_day_count.add(key)
 
         for sub in task['sub_tasks']:
             self.room_busy[(sub['selected_room'].room_id, ts.day, ts.slot_number)] = False
