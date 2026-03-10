@@ -1,4 +1,4 @@
-# Timetable Scheduler [WIP]
+# Timetable Scheduler
 
 ## Table of Contents
 - [Overview](#overview)
@@ -92,7 +92,10 @@ npm run dev
 
 
 ## Architecture
-The platform utilizes a **React + Vite** frontend and a **Django / Django REST Framework** backend.
+The platform utilizes a **React + Vite** frontend and a **Django / Django REST Framework** backend, grounded by a robust relational database.
+
+### The Database Layer
+The system maps core academic resources (Teachers, Rooms, Courses) using **PostgreSQL** in production (and **SQLite** for local development). Django's ORM strictly enforces constraints and data normalization. The architecture intrinsically separates active algorithmic assignments from governance and historical archive tables.
 
 ### The Web Dashboard
 The web dashboard allows institutional users to manage academic operations effortlessly. It enables users to:
@@ -100,6 +103,10 @@ The web dashboard allows institutional users to manage academic operations effor
 - **Generate Timetables** using a unified modal constraint checklist.
 - **View Core Analytics** such as faculty weekly workload and room utilization.
 - **Manage Change Requests** from faculty seeking adjustments.
+- **Execute Semester Rollovers** to seamlessly transition to new academic terms by archiving data.
+- **Maintain Data Integrity** with one-click database backups and restorations.
+- **Audit Logging** tracking all significant administrative system changes.
+- **Automated Email Notifications** alerting faculty via SMTP when new schedules are published.
 - **Export and Import** timetable mappings in CSV format.
 
 ### The Generator Engine
