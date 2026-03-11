@@ -196,9 +196,9 @@ const Login = () => {
                         transition={{ delay: 0.3, duration: 0.5 }}
                         className="brand-title"
                     >
-                        Master your <br />
+                        Schedula <br />
                         <span className="highlight-text">
-                            Academic Schedule
+                            Academic Scheduling
                         </span>
                     </motion.h1>
 
@@ -378,7 +378,7 @@ const Login = () => {
 
                     {/* Footer legal text */}
                     <div className="form-footer">
-                        M3 System for Amrita University v1.0 © 2026
+                        Schedula v1.0 © 2026
                     </div>
                 </motion.div>
             </div>
