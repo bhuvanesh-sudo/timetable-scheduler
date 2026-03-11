@@ -208,7 +208,7 @@ const Login = () => {
                         transition={{ delay: 0.4, duration: 0.5 }}
                         className="brand-desc"
                     >
-                        Automated conflict-free scheduling for Amrita University.
+                        Automated conflict-free timetable scheduling.
                         Optimize resources, manage faculty workloads, and generate timetables in seconds.
                     </motion.p>
                 </div>
