@@ -2,6 +2,7 @@
 Scheduler API Views
 
 This module provides API endpoints for schedule generation and analytics.
+Updated to safely handle null rooms for Project Phases.
 
 Author: Backend Team (Vamsi, Akshitha)
 Sprint: 1
@@ -177,7 +178,6 @@ def get_room_utilization(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_timetable_view(request):
-
     """
     Get timetable view for a specific section or teacher.
     
@@ -233,7 +233,7 @@ def get_timetable_view(request):
             'course_name': entry.course.course_name,
             'teacher_id': entry.teacher.teacher_id,
             'teacher_name': entry.teacher.teacher_name,
-            'room': entry.room.room_id,
+            'room': entry.room.room_id if entry.room else 'TBA',
             'section': entry.section.class_id,
             'is_lab_session': entry.is_lab_session,
             'is_adm': entry.course.is_adm,
@@ -284,9 +284,6 @@ def get_my_schedule(request):
         )
         
     # Reuse the logic from get_timetable_view but force teacher_id
-    # We can call the internal logic or just reproduce it here
-    
-    # Query for the specific schedule and teacher
     entries = ScheduleEntry.objects.filter(
         schedule_id=schedule_id,
         teacher_id=teacher_id
@@ -310,7 +307,7 @@ def get_my_schedule(request):
             'course_code': entry.course.course_id,
             'course_name': entry.course.course_name,
             'teacher_name': entry.teacher.teacher_name,
-            'room': entry.room.room_id,
+            'room': entry.room.room_id if entry.room else 'TBA',
             'section': entry.section.class_id,
             'is_lab_session': entry.is_lab_session,
             'is_adm': entry.course.is_adm,
@@ -383,9 +380,10 @@ def validate_schedule(request, schedule_id):
                 f"Teacher '{t.teacher_name}' is assigned {check_count} distinct classes at {ts.day} Slot {ts.slot_number}"
             )
 
-    # 2. Room double-booking
+    # 2. Room double-booking (excluding null rooms)
     room_clashes = (
-        entries.values('room', 'timeslot')
+        entries.exclude(room__isnull=True)
+        .values('room', 'timeslot')
         .annotate(count=Count('id'))
         .filter(count__gt=1)
     )
@@ -414,6 +412,7 @@ def validate_schedule(request, schedule_id):
     # 4. Room-type mismatch (lab session in theory room or vice versa)
     for entry in entries.select_related('course', 'room'):
         room = entry.room
+        if not room: continue # Skip if no room assigned
         if entry.is_lab_session:
             if room.room_type != 'LAB':
                 conflicts.append(
@@ -491,8 +490,8 @@ def validate_move(request):
                     f"Teacher '{entry.teacher.teacher_name}' already has a different class at "
                     f"{target_day} Slot {target_slot} ({other.course.course_id})"
                 )
-        # Room double-booking
-        if other.room_id == entry.room_id:
+        # Room double-booking (safe check for nulls)
+        if other.room_id and entry.room_id and other.room_id == entry.room_id:
             conflicts.append(
                 f"Room '{entry.room.room_id}' is already occupied at "
                 f"{target_day} Slot {target_slot} ({other.course.course_id})"
@@ -585,7 +584,8 @@ def move_entry(request):
                             f"Teacher '{entry.teacher.teacher_name}' already has a different class at "
                             f"{target_day} Slot {target_slot}"
                         )
-                if other.room_id == entry.room_id:
+                # Safe check for nulls
+                if other.room_id and entry.room_id and other.room_id == entry.room_id:
                     conflict_list.append(
                         f"Room '{entry.room.room_id}' is already occupied at "
                         f"{target_day} Slot {target_slot}"
@@ -697,7 +697,7 @@ def publish_schedule(request, schedule_id):
                 entry.timeslot.day,
                 entry.timeslot.slot_number,
                 entry.course.course_id,
-                entry.room.room_id,
+                entry.room.room_id if entry.room else 'TBA',
                 entry.section.class_id,
                 entry.is_lab_session,
             )
@@ -848,4 +848,3 @@ def send_reminders(request):
         "message": msg,
         "targeted": targeted,
     })
-

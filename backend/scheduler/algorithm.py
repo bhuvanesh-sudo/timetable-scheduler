@@ -301,7 +301,8 @@ class TimetableScheduler:
                         'block_size': 1, # Phase sessions are always 1 slot each
                         'priority': PRIORITY[TYPE_PRACTICAL],
                         'is_group': True,
-                        'group_name': course.course_name
+                        'group_name': course.course_name,
+                        'is_project': True
                     })
 
         return tasks
@@ -442,6 +443,11 @@ class TimetableScheduler:
             for sec in sub['sections']:
                 if not bypass and self.section_busy.get((sec.class_id, ts.day, ts.slot_number)): return False
             
+            # If it's a project phase, we don't need a room (faculty cabin)
+            if task.get('is_project'):
+                sub['selected_room'] = None
+                continue
+
             room_type = 'LAB' if sub['course'].practicals > 0 else 'CLASSROOM'
             found_room = False
             for r in self.rooms_by_type[room_type]:
@@ -460,7 +466,7 @@ class TimetableScheduler:
         
         for sub in task['sub_tasks']:
             teacher = sub['teacher']
-            room = sub['selected_room']
+            room = sub.get('selected_room')
             for sec in sub['sections']:
                 # Suppress LAB tag for Year 4 Electives
                 is_lab = (sub['course'].practicals > 0)
@@ -483,7 +489,8 @@ class TimetableScheduler:
                     self.section_day_counts[key] = self.section_day_counts.get(key, 0) + 1
                     processed_secs_for_day_count.add(key)
                     
-            self.room_busy[(room.room_id, ts.day, ts.slot_number)] = True
+            if room:
+                self.room_busy[(room.room_id, ts.day, ts.slot_number)] = True
             
         for t in task.get('busy_teachers', []):
             self.faculty_busy[(t.teacher_id, ts.day, ts.slot_number)] = True
@@ -506,7 +513,9 @@ class TimetableScheduler:
                 processed_secs_for_day_count.add(key)
 
         for sub in task['sub_tasks']:
-            self.room_busy[(sub['selected_room'].room_id, ts.day, ts.slot_number)] = False
+            room = sub.get('selected_room')
+            if room:
+                self.room_busy[(room.room_id, ts.day, ts.slot_number)] = False
             for sec in sub['sections']: self.section_busy[(sec.class_id, ts.day, ts.slot_number)] = False
             
         for t in task.get('busy_teachers', []):
