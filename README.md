@@ -1,55 +1,177 @@
-# M3 Timetable Scheduling System (Sprint 2 Final)
+# Timetable Scheduler
 
-**Production-Ready** | Team 10 Capstone Project
+## Table of Contents
+- [Overview](#overview)
+- [Getting Started](#getting-started)
+- [Architecture](#architecture)
+- [The Web Dashboard](#the-web-dashboard)
+- [The Generator Engine](#the-generator-engine)
+- [Schedule Generation](#schedule-generation)
+- [Role-Based Access Control](#role-based-access-control)
+- [Project Structure](#project-structure)
+- [Testing](#testing)
+- [Contributing](#contributing)
+- [LICENSE](#license)
+- [Team](#team)
 
----
+More documentation available at `/docs`. See:
+- [API Documentation](docs/api.md)
+- [Auth Documentation](docs/auth.md)
+- [Database Documentation](docs/database.md)
 
-## 🏗️ System Architecture
+## Overview
+Timetable Scheduler is an academic scheduling platform that generates, validates, and manages university timetables. By integrating with institutional constraints (faculty workloads, room capacities, consecutive labs), it acts as a constraint-satisfaction engine to synchronize resources and eliminate manual timetable clashes.
 
-- **Frontend**: React + Vite
-- **Backend**: Django REST Framework
-- **Task Queue**: Celery + Redis
-- **Database**: SQLite (Main) + Separate Audit DB
+## Getting Started
 
-## 🚀 DevOps Setup Guide
-
-### 1. Prerequisites
+### Prerequisites
 - Python 3.10+
-- Node.js 18+
-- Redis Server (Running on localhost:6379)
+- Node.js & npm
+- PostgreSQL (or SQLite for dev)
+- Git
 
-### 2. Backend Initialization
+### Initial Setup
+Clone the repository:
 ```bash
-cd backend
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-
-# Environment Setup
-cp .env.example .env
-
-# Database Migrations
-python manage.py migrate
-python manage.py migrate --database=audit_db
-
-# Initial Data Load
-python manage.py import_data --clear
-python manage.py setup_standard_users
+git clone https://github.com/bhuvanesh-sudo/timetable-scheduler.git
+cd timetable-scheduler
 ```
 
-### 3. Running the Application
-| Component | Command |
-| :--- | :--- |
-| **Backend** | `python manage.py runserver` |
-| **Worker** | `celery -A timetable_project worker --loglevel=info` |
-| **Frontend** | `cd frontend && npm install && npm run dev` |
+Create a `.env` file in the `backend/` directory:
+```bash
+cp backend/.env.example backend/.env
+```
 
-## 🔐 Default Access
-| Role | Username | Password |
-| :--- | :--- | :--- |
-| **Admin** | `admin` | `admin123` |
-| **HOD** | `hod` | `hod123` |
-| **Faculty** | `T001` | `faculty123` |
+Configure backend environment variables (`backend/.env`):
+```env
+# Database
+POSTGRES_CONNECTION_URL="postgresql://user:pass@localhost/timetable"
 
----
-**Status**: 100% Verified Technical Handover State.
+# Auth
+SECRET_KEY="YOUR_SECRET_KEY"
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+REFRESH_TOKEN_EXPIRE_DAYS=15
+
+# SMTP
+EMAIL_HOST="smtp.gmail.com"
+EMAIL_PORT=587
+EMAIL_HOST_USER="your-email@gmail.com"
+EMAIL_HOST_PASSWORD="your-app-password"
+```
+
+### Installation
+**Backend Setup:**
+```bash
+cd backend
+python -m venv .venv
+source .venv/Scripts/activate  # On Windows
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py import_data --clear  # Seed database with initial CSV data
+python manage.py create_admin         # Create initial superuser
+```
+
+**Frontend Setup:**
+```bash
+cd frontend
+npm install
+```
+
+### Local Development
+**Run Backend:**
+```bash
+cd backend
+python manage.py runserver
+```
+
+**Run Frontend:**
+```bash
+cd frontend
+npm run dev
+```
+
+
+## Architecture
+The platform utilizes a **React + Vite** frontend and a **Django / Django REST Framework** backend, grounded by a robust relational database.
+
+### The Database Layer
+The system maps core academic resources (Teachers, Rooms, Courses) using **PostgreSQL** in production (and **SQLite** for local development). Django's ORM strictly enforces constraints and data normalization. The architecture separates active assignments from governance and historical archive tables.
+
+### The Web Dashboard
+The web dashboard allows institutional users to manage academic operations. It enables users to:
+- **Log In** via role-based access tokens (Admin, HOD, Faculty).
+- **Generate Timetables** using a unified modal constraint checklist.
+- **View Core Analytics** such as faculty weekly workload and room utilization.
+- **Manage Change Requests** from faculty seeking adjustments.
+- **Execute Semester Rollovers** to transition to new academic terms by archiving data.
+- **Maintain Data Integrity** with database backups and restorations.
+- **Audit Logging** tracking significant administrative system changes.
+- **Automated Email Notifications** alerting faculty via SMTP when new schedules are published.
+- **Export and Import** timetable mappings in CSV format.
+
+### The Generator Engine
+The core of the system resides in the Django backend (`scheduler/algorithm.py`). It uses a backtracking search with heuristics to map variables:
+- **Entities:** Teachers, Courses (Lectures, Tutorials, Labs), Rooms, Sections.
+- **Constraints:** Total teacher workload, room availability, overlapping classes, concurrent parallel electives.
+- **Elective Resolution:** The engine groups parallel elective sessions (e.g., PE1, PE2) into unified time blocks to prevent double-booking faculty.
+
+### Schedule Generation
+The API runs the schedule generation algorithm synchronously in the main Python thread.
+- Triggering generation creates a `PENDING` schedule entity.
+- The constraint engine computes combinations and proves validity.
+- Once generation resolves with zero clashes, the output writes directly to the PostgreSQL database, turning the status to `COMPLETED`.
+
+### Role-Based Access Control
+The application operates on a strict tri-tier governance model:
+1. **Admin / Principal:** Has global read/write, database backup, and semester rollover powers.
+2. **Head of Department (HOD):** Can trigger timetable generation, approve/deny faculty change requests, and view department workloads.
+3. **Faculty:** Can only view approved generated schedules and submit change requests for conflict resolutions.
+
+## Project Structure
+```text
+timetable-scheduler/
+   ├── backend/                           # Django Application
+   │   ├── accounts/                      # Auth, User Models, Permissions
+   │   ├── core/                          # Core Data Models (Courses, etc) & Management Commands
+   │   ├── scheduler/                     # Scheduling API, Algorithmic Engine & Email Tasks
+   │   ├── timetable_project/             # Main Django Settings & WSGI
+   │   └── manage.py
+   │
+   ├── frontend/                          # React + Vite Frontend
+   │   ├── src/
+   │   │   ├── components/                # Reusable UI Blocks (Modals, Grids)
+   │   │   ├── pages/                     # Dashboard Views (Admin, HOD, Faculty)
+   │   │   ├── utils/                     # API interceptors & Auth context
+   │   │   └── App.jsx
+   │
+   ├── Datasets/                          # Raw CSV Data for seeding algorithm
+   ├── docs/                              # Markdown documentation
+   └── .github/workflows/                 # CI/CD Pipelines
+```
+
+## Testing
+The backend is thoroughly tested using `pytest`.
+
+```bash
+# Run all backend tests
+cd backend
+pytest
+
+# Run tests with coverage
+pytest --cov=.
+
+# Run specific functional test suite
+pytest tests/test_algorithm.py
+```
+
+## Contributing
+1. Create a new branch: `git checkout -b feature/your-feature-name`
+2. Commit your changes: `git commit -m 'feat: Add some feature'`
+3. Push to the branch: `git push origin feature/your-feature-name`
+4. Submit a pull request.
+
+## LICENSE
+This project is licensed under the MIT License.
+
+## Team
+- **Frontend / Backend Development:** Timetable Team

@@ -353,11 +353,19 @@ function DataManagement() {
             let errorCount = 0;
             const errors = [];
 
-            // Deduplicate data if needed
-            let dataToImport = csvData;
+            // Filter out empty rows or rows missing primary keys
+            let dataToImport = csvData.filter(row => {
+                if (activeTab === 'teachers' && !row.teacher_id) return false;
+                if (activeTab === 'courses' && !row.course_id) return false;
+                if (activeTab === 'rooms' && !row.room_id) return false;
+                if (activeTab === 'sections' && !row.class_id) return false;
+                if (activeTab === 'timeslots' && !row.slot_id) return false;
+                return true;
+            });
+
             if (activeTab === 'mappings') {
                 const seen = new Set();
-                dataToImport = csvData.filter(row => {
+                dataToImport = dataToImport.filter(row => {
                     if (!row.teacher_id || !row.course_id) return false;
                     const key = `${row.teacher_id}-${row.course_id}`;
                     if (seen.has(key)) return false;
@@ -366,40 +374,66 @@ function DataManagement() {
                 });
             }
 
-            for (const row of dataToImport) {
-                try {
-                    const processedRow = { ...row };
+            const safeParseInt = (val, fallback = 0) => {
+                const parsed = parseInt(val, 10);
+                return isNaN(parsed) ? fallback : parsed;
+            };
 
-                    if (activeTab === 'teachers') {
-                        processedRow.max_hours_per_week = parseInt(processedRow.max_hours_per_week);
-                    } else if (activeTab === 'courses') {
-                        processedRow.year = parseInt(processedRow.year);
-                        // processedRow.semester is already a string ('odd'/'even'), no parseInt needed
-                        processedRow.credits = parseInt(processedRow.credits);
-                        processedRow.weekly_slots = parseInt(processedRow.weekly_slots);
-                        processedRow.lectures = parseInt(processedRow.lectures);
-                        processedRow.theory = parseInt(processedRow.theory);
-                        processedRow.practicals = parseInt(processedRow.practicals);
-                        processedRow.is_lab = processedRow.is_lab === 'true' || processedRow.is_lab === '1';
-                        processedRow.is_elective = processedRow.is_elective === 'true' || processedRow.is_elective === '1';
-                    } else if (activeTab === 'rooms') {
-                        processedRow.floor = parseInt(processedRow.floor);
-                    } else if (activeTab === 'sections') {
-                        processedRow.year = parseInt(processedRow.year);
-                    } else if (activeTab === 'mappings') {
-                        processedRow.teacher = processedRow.teacher_id;
-                        processedRow.course = processedRow.course_id;
-                        processedRow.preference_level = processedRow.preference_level ? parseInt(processedRow.preference_level) : 3;
-                    } else if (activeTab === 'timeslots') {
-                        processedRow.slot_number = parseInt(processedRow.slot_number);
+            // Process imports in batches to improve performance
+            const BATCH_SIZE = 10;
+            for (let i = 0; i < dataToImport.length; i += BATCH_SIZE) {
+                const batch = dataToImport.slice(i, i + BATCH_SIZE);
+
+                const batchPromises = batch.map(async (row, index) => {
+                    try {
+                        const processedRow = { ...row };
+
+                        if (activeTab === 'teachers') {
+                            processedRow.max_hours_per_week = safeParseInt(processedRow.max_hours_per_week, 20);
+                            if (!processedRow.email) processedRow.email = `${processedRow.teacher_id.toLowerCase()}@example.com`;
+                            if (!processedRow.department) processedRow.department = 'General';
+                            if (!processedRow.teacher_name) processedRow.teacher_name = processedRow.teacher_id;
+                        } else if (activeTab === 'courses') {
+                            processedRow.year = safeParseInt(processedRow.year, 1);
+                            processedRow.credits = safeParseInt(processedRow.credits, 3);
+                            processedRow.weekly_slots = safeParseInt(processedRow.weekly_slots, 3);
+                            processedRow.lectures = safeParseInt(processedRow.lectures, 3);
+                            processedRow.theory = safeParseInt(processedRow.theory, 0);
+                            processedRow.practicals = safeParseInt(processedRow.practicals, 0);
+                            processedRow.is_lab = String(processedRow.is_lab).toLowerCase() === 'true' || processedRow.is_lab === '1';
+                            processedRow.is_elective = String(processedRow.is_elective).toLowerCase() === 'true' || processedRow.is_elective === '1';
+                        } else if (activeTab === 'rooms') {
+                            processedRow.floor = safeParseInt(processedRow.floor, 1);
+                        } else if (activeTab === 'sections') {
+                            processedRow.year = safeParseInt(processedRow.year, 1);
+                        } else if (activeTab === 'mappings') {
+                            processedRow.teacher = processedRow.teacher_id;
+                            processedRow.course = processedRow.course_id;
+                            processedRow.preference_level = processedRow.preference_level ? safeParseInt(processedRow.preference_level, 3) : 3;
+                        } else if (activeTab === 'timeslots') {
+                            processedRow.slot_number = safeParseInt(processedRow.slot_number, 1);
+                        }
+
+                        await api.create(processedRow);
+                        return { success: true };
+                    } catch (error) {
+                        return {
+                            success: false,
+                            error: `Row ${i + index + 1}: ${error.response?.data?.error || error.message}`
+                        };
                     }
+                });
 
-                    await api.create(processedRow);
-                    successCount++;
-                } catch (error) {
-                    errorCount++;
-                    errors.push(`Row ${successCount + errorCount}: ${error.response?.data?.error || error.message}`);
-                }
+                const results = await Promise.all(batchPromises);
+
+                results.forEach(result => {
+                    if (result.success) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                        errors.push(result.error);
+                    }
+                });
             }
 
             setShowImportModal(false);
