@@ -29,11 +29,9 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         max_backups = options['max_backups']
 
-        # Source database path
         db_path = settings.DATABASES['default']['NAME']
-        if not os.path.exists(db_path):
-            self.stderr.write(self.style.ERROR(f'Database not found: {db_path}'))
-            return
+        engine = settings.DATABASES['default']['ENGINE']
+        is_sqlite = 'sqlite' in engine
 
         # Create backups directory next to the database
         backup_dir = os.path.join(settings.BASE_DIR, 'backups')
@@ -41,21 +39,42 @@ class Command(BaseCommand):
 
         # Generate timestamped filename
         timestamp = datetime.now().strftime('%Y-%m-%d_%H%M%S')
-        backup_filename = f'db_{timestamp}.sqlite3'
-        backup_path = os.path.join(backup_dir, backup_filename)
-
-        # Copy the database
-        try:
-            shutil.copy2(str(db_path), backup_path)
-            file_size = os.path.getsize(backup_path)
-            self.stdout.write(
-                self.style.SUCCESS(
-                    f'Backup created: {backup_filename} ({file_size:,} bytes)'
+        
+        if is_sqlite:
+            if not os.path.exists(db_path):
+                self.stderr.write(self.style.ERROR(f'Database not found: {db_path}'))
+                return
+            backup_filename = f'db_{timestamp}.sqlite3'
+            backup_path = os.path.join(backup_dir, backup_filename)
+            try:
+                shutil.copy2(str(db_path), backup_path)
+                file_size = os.path.getsize(backup_path)
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f'Backup created: {backup_filename} ({file_size:,} bytes)'
+                    )
                 )
-            )
-        except Exception as e:
-            self.stderr.write(self.style.ERROR(f'Backup failed: {e}'))
-            return
+            except Exception as e:
+                self.stderr.write(self.style.ERROR(f'Backup failed: {e}'))
+                return
+        else:
+            backup_filename = f'db_{timestamp}.json'
+            backup_path = os.path.join(backup_dir, backup_filename)
+            from django.core.management import call_command
+            try:
+                # Use explicit UTF-8 encoding to avoid Windows default encoding issues
+                with open(backup_path, 'w', encoding='utf-8') as f:
+                    call_command('dumpdata', format='json', indent=2, stdout=f,
+                                 exclude=['auth.permission', 'contenttypes.contenttype', 'admin.logentry', 'sessions.session'])
+                file_size = os.path.getsize(backup_path)
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f'Backup created: {backup_filename} ({file_size:,} bytes)'
+                    )
+                )
+            except Exception as e:
+                self.stderr.write(self.style.ERROR(f'Backup failed: {e}'))
+                return
 
         # Cleanup old backups (keep only max_backups most recent)
         backups = sorted([
