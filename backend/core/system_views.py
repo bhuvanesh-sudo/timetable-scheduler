@@ -41,16 +41,16 @@ def list_backups(request):
 
     backups = []
     for filename in os.listdir(BACKUP_DIR):
-        if filename.startswith('db_') and filename.endswith('.sqlite3'):
+        if filename.startswith('db_') and (filename.endswith('.sqlite3') or filename.endswith('.json')):
             filepath = os.path.join(BACKUP_DIR, filename)
             stat = os.stat(filepath)
             
-            # Parse timestamp from filename: db_YYYY-MM-DD_HHMMSS.sqlite3 or db_pre_restore_YYYY...
+            # Parse timestamp from filename: db_YYYY-MM-DD_HHMMSS.extension or db_pre_restore_YYYY...
             created_iso = None
             timestamp_obj = datetime.min # Default for sorting if parsing fails
 
             try:
-                date_str = filename.replace('.sqlite3', '')
+                date_str = filename.replace('.sqlite3', '').replace('.json', '')
                 if date_str.startswith('db_pre_restore_'):
                     date_str = date_str.replace('db_pre_restore_', '')
                 elif date_str.startswith('db_'):
@@ -190,7 +190,7 @@ def _create_db_backup(label):
     if os.path.exists(BACKUP_DIR):
         files = sorted([
             f for f in os.listdir(BACKUP_DIR)
-            if f.startswith('db_') and f.endswith('.sqlite3')
+            if f.startswith('db_') and (f.endswith('.sqlite3') or f.endswith('.json'))
         ])
         if files:
             latest = files[-1]
@@ -238,17 +238,42 @@ def restore_backup(request, filename):
         )
 
     db_path = str(settings.DATABASES['default']['NAME'])
+    engine = settings.DATABASES['default']['ENGINE']
 
     try:
         # Create a safety backup of the CURRENT state before restoring
         safety_dir = os.path.join(BACKUP_DIR)
         os.makedirs(safety_dir, exist_ok=True)
-        safety_name = f'db_pre_restore_{datetime.now().strftime("%Y-%m-%d_%H%M%S")}.sqlite3'
-        safety_path = os.path.join(safety_dir, safety_name)
-        shutil.copy2(db_path, safety_path)
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
 
-        # Perform the restore
-        shutil.copy2(backup_path, db_path)
+        is_sqlite = 'sqlite' in engine
+
+        if is_sqlite:
+            safety_name = f'db_pre_restore_{timestamp}.sqlite3'
+            safety_path = os.path.join(safety_dir, safety_name)
+            shutil.copy2(db_path, safety_path)
+            
+            if filename.endswith('.sqlite3'):
+                shutil.copy2(backup_path, db_path)
+            elif filename.endswith('.json'):
+                call_command('flush', '--noinput')
+                call_command('loaddata', backup_path)
+            else:
+                return Response({'error': 'Unsupported backup format.'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            safety_name = f'db_pre_restore_{timestamp}.json'
+            safety_path = os.path.join(safety_dir, safety_name)
+            with open(safety_path, 'w', encoding='utf-8') as f:
+                call_command('dumpdata', format='json', indent=2, stdout=f)
+            
+            if filename.endswith('.json'):
+                call_command('flush', '--noinput')
+                call_command('loaddata', backup_path)
+            else:
+                return Response(
+                    {'error': 'Cannot restore an SQLite backup (.sqlite3) directly into a PostgreSQL database. Please use a JSON backup.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
         # Log to audit trail (this goes to audit_db, which is NOT restored)
         AuditLog.objects.create(
@@ -324,7 +349,7 @@ def system_info(request):
     if os.path.exists(BACKUP_DIR):
         backup_files = [
             f for f in os.listdir(BACKUP_DIR)
-            if f.startswith('db_') and f.endswith('.sqlite3')
+            if f.startswith('db_') and (f.endswith('.sqlite3') or f.endswith('.json'))
         ]
         backup_count = len(backup_files)
         total_backup_size = sum(
