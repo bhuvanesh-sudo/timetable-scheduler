@@ -744,13 +744,17 @@ function ViewTimetable() {
                                                     const isDraggingThis = dragging?.entryId === classItem.entry_id;
 
                                                     // Identify Special Courses (Electives, Projects, AVPs)
-                                                    const isProject = classItem.course_name?.toLowerCase().includes('project phase');
-                                                    const isAVP = classItem.course_name?.toLowerCase().includes('avp') || classItem.course_code?.toLowerCase().includes('avp');
+                                                    const safeCourseName = classItem.course_name || '';
+                                                    const safeCourseCode = classItem.course_code || '';
+                                                    
+                                                    // Identify Special Courses (Electives, Projects, AVPs)
+                                                    const isProject = safeCourseName.toLowerCase().includes('project phase');
+                                                    const isAVP = safeCourseName.toLowerCase().includes('avp') || safeCourseCode.toLowerCase().includes('avp');
                                                     const isSpecialCourse = classItem.is_elective || isProject || isAVP;
-
+                                                    // -------------------------------------------------------------------------
+                                                                                                
                                                     const sessionTypeClass = isProject ? 'project' : (classItem.session_type?.toLowerCase() || 'theory');
                                                     const isTeacherHighlight = classItem.teacher_id === (user?.teacher_id || selectedTeacher);
-
                                                     return (
                                                         <div
                                                             key={idx}

@@ -308,8 +308,8 @@ class ScheduleEntrySerializer(serializers.ModelSerializer):
     elective_type = serializers.CharField(source="course.elective_type", read_only=True, allow_null=True)
     elective_group = serializers.CharField(source="course.elective_group", read_only=True, allow_null=True)
     teacher_name = serializers.CharField(source="teacher.teacher_name", read_only=True)
-    room_name = serializers.CharField()
-    room_type = serializers.CharField()
+    room_name = serializers.SerializerMethodField()
+    room_type = serializers.SerializerMethodField()
     day = serializers.CharField(source="timeslot.day", read_only=True)
     slot_number = serializers.IntegerField(
         source="timeslot.slot_number", read_only=True

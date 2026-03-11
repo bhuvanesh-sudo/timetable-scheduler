@@ -251,16 +251,25 @@ class TimetableScheduler:
                 task_busy_teachers = set()
                 
                 # Each mapping represents a parallel class within the group
-                for m in group_mappings:
+                for idx, m in enumerate(group_mappings):
+                    
+                    # FIX: Prevent n*m duplicate explosion. 
+                    # If the mapping explicitly specifies a section, use it.
+                    # Otherwise, distribute the target sections round-robin.
+                    if m.section:
+                        assigned_secs = [m.section]
+                    else:
+                        assigned_secs = [target_sections[idx % len(target_sections)]]
+
                     sub_tasks.append({
                         'course': m.course, 
                         'teacher': m.teacher, 
-                        'sections': target_sections, 
+                        'sections': assigned_secs, 
                         'session_type': session['session_type'],
                         'display_name': m.course.course_name
                     })
                     task_busy_teachers.add(m.teacher)
-                
+                    
                 if sub_tasks:
                     tasks.append({
                         'type': session['type'], 

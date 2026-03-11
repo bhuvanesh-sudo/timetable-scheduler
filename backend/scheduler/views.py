@@ -401,14 +401,29 @@ def validate_schedule(request, schedule_id):
         .annotate(count=Count('id'))
         .filter(count__gt=1)
     )
-    for c in section_clashes:
-        s = Section.objects.get(pk=c['section'])
-        ts = TimeSlot.objects.get(pk=c['timeslot'])
-        check_count = c['count']
-        conflicts.append(
-            f"Section '{s.class_id}' has {check_count} classes at {ts.day} Slot {ts.slot_number}"
-        )
 
+    for c in section_clashes:
+        overlapping_entries = entries.filter(section=c['section'], timeslot=c['timeslot']).select_related('course')
+        elective_groups = set()
+        
+        for e in overlapping_entries:
+            if e.course.elective_group and e.course.elective_group != 'NA':
+                elective_groups.add(e.course.elective_group)
+            else:
+                elective_groups.add(None) # Flag as a non-elective
+                
+        is_conflict = True
+        # If all overlapping entries belong to the EXACT SAME elective group, it is NOT a conflict
+        if len(elective_groups) == 1 and list(elective_groups)[0] is not None:
+            is_conflict = False
+            
+        if is_conflict:
+            s = Section.objects.get(pk=c['section'])
+            ts = TimeSlot.objects.get(pk=c['timeslot'])
+            check_count = c['count']
+            conflicts.append(
+                f"Section '{s.class_id}' has {check_count} classes at {ts.day} Slot {ts.slot_number}"
+            )
     # 4. Room-type mismatch (lab session in theory room or vice versa)
     for entry in entries.select_related('course', 'room'):
         room = entry.room
@@ -498,11 +513,20 @@ def validate_move(request):
             )
         # Section double-booking
         if other.section_id == entry.section_id:
-            conflicts.append(
-                f"Section '{entry.section.class_id}' already has a class at "
-                f"{target_day} Slot {target_slot} ({other.course.course_id})"
-            )
-
+                    is_conflict = True
+                    
+                    # Ignore conflict if both are part of the same elective group
+                    other_group = getattr(other.course, 'elective_group', None)
+                    entry_group = getattr(entry.course, 'elective_group', None)
+                    
+                    if other_group and other_group != 'NA' and entry_group == other_group:
+                        is_conflict = False
+                        
+                    if is_conflict:
+                        conflicts.append(
+                            f"Section '{entry.section.class_id}' already has a class at "
+                            f"{target_day} Slot {target_slot}"
+                        )
     return Response({
         'valid': len(conflicts) == 0,
         'conflicts': conflicts,
@@ -591,11 +615,20 @@ def move_entry(request):
                         f"{target_day} Slot {target_slot}"
                     )
                 if other.section_id == entry.section_id:
-                    conflict_list.append(
-                        f"Section '{entry.section.class_id}' already has a class at "
-                        f"{target_day} Slot {target_slot}"
-                    )
-
+                    is_conflict = True
+                    
+                    # Ignore conflict if both are part of the same elective group
+                    other_group = getattr(other.course, 'elective_group', None)
+                    entry_group = getattr(entry.course, 'elective_group', None)
+                    
+                    if other_group and other_group != 'NA' and entry_group == other_group:
+                        is_conflict = False
+                        
+                    if is_conflict:
+                        conflict_list.append(
+                            f"Section '{entry.section.class_id}' already has a class at "
+                            f"{target_day} Slot {target_slot}"
+                        )
             if conflict_list:
                 return Response(
                     {'error': 'Move rejected due to scheduling conflicts', 'conflicts': conflict_list},
